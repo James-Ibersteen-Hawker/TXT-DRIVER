@@ -1,17 +1,17 @@
-~basic
-car&__/‾|‾\__―O―――――O―
-van&/‾|‾‾‾|―O―――OO
-truck&_/‾|―O―O
-limo&__/‾|‾‾‾‾|‾\__―O――――――――――O―
-motorcycle& /__ O––/O
-bus&/‾|‾‾‾‾‾‾|‾\―O――――――――O―
-lorry&_/‾|‾‾‾|―O―――OO-
-~extension
-truck flatbed&========O―――――OO
-truck trailer&‾‾‾‾‾‾‾|O―――――OO
-truck double&‾‾‾‾‾‾‾|‾‾‾‾‾‾‾|O―――――OOO―――――OO
-truck none& O
-~user
-ucar&__/≣|≣\__―O―――――O―
-utruck&|‾‾‾‾‾‾‾|≣\_OO―――――OO―O―
-ulorry&|‾‾‾|≣\_-OO―――O―
+~basic~
+car&__/‾|‾\__―O―――――O―%
+van&/‾|‾‾‾|―O―――OO%
+truck&_/‾|―O―O%
+limo&__/‾|‾‾‾‾|‾\___―O――――――――――O―%
+motorcycle& /__ O––/O%
+bus&/‾|‾‾‾‾‾‾|‾\――O――――――――O―%
+lorry&_/‾|‾‾‾|―O―――OO-%
+~extension~
+truck flatbed&========O―――――OO%
+truck trailer&‾‾‾‾‾‾‾|O―――――OO%
+truck double&‾‾‾‾‾‾‾|‾‾‾‾‾‾‾|O―――――OOO―――――OO%
+truck none& O%
+~user~
+ucar&__/≣|≣\___―O―――――O―%
+utruck&|‾‾‾‾‾‾‾|≣\__OO―――――OO―O―%
+ulorry&|‾‾‾|≣\__-OO―――O―%
