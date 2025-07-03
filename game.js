@@ -2,12 +2,16 @@
 class Game {
   MAXPOINTS;
   LEVEL;
+  LANES;
+  GAMEWIDTH;
   RENDERTO;
-  constructor(MAXPOINTS, LEVEL, RENDERTO) {
+  constructor(MAXPOINTS, LEVEL, LANES, GAMEWIDTH, RENDERTO) {
     (this.MAXPOINTS = MAXPOINTS),
       (this.LEVEL = LEVEL),
+      (this.LANES = LANES),
+      (this.GAMEWIDTH = GAMEWIDTH),
       (this.RENDERTO = RENDERTO),
-      (this.queue = []),
+      (this.QUEUE = []),
       (this.templates = {}),
       ((this.BASECLASS = class {
         x;
@@ -57,16 +61,41 @@ class Game {
         }
       };
     });
-    let debugtemplate = new self.templates.car(0, 1).template;
-    // alert(debugtemplate);
-    let cap = new Array(8).fill(null).map(() => new Array(8).fill(1));
-    [
-      [0, 0],
-      [0, 0],
-    ].OVER(cap, 2, 2);
-    alert(cap[2]);
-    alert(cap[3]);
+    const road = templates.at(-1)[0];
+    const segment = [
+      road[1].slice(0, Math.floor(road[1].length / 3)).split(""),
+      road[1]
+        .slice(
+          Math.floor(road[1].length / 3),
+          Math.floor(road[1].length / 3) * 2
+        )
+        .split(""),
+      road[1].slice(Math.floor(road[1].length / 3) * 2).split(""),
+    ];
+    self.templates[road[0]] = segment;
+    self.PLAY();
+  }
+  PLAY() {
+    const self = this;
+    self.ROAD = new Array(self.LANES)
+      .fill(null)
+      .map(() => new Array(self.GAMEWIDTH).fill(" "));
+    Function.prototype.REPEAT = function (num, ...args) {
+      for (let i = 0; i < num; i++) this(i, ...args);
+    };
+    let offset = 0;
+    while (offset < self.ROAD[0].length) {
+      self.templates.segment.OVER(self.ROAD, offset, 0);
+      offset += self.templates.segment[0].length;
+    }
+    self.ROAD.forEach((e) => {
+      e.forEach((a) => {
+        self.RENDERTO.append(a);
+      });
+      self.RENDERTO.insertAdjacentHTML("beforeend", "<br>");
+    });
+    console.log(self.ROAD);
   }
 }
 
-const myGame = new Game(1, 1, null);
+const myGame = new Game(1, 1, 3, 50, document.querySelector("#game"));

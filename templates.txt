@@ -15,3 +15,5 @@ truck none& O%
 ucar&__/≣|≣\___―O―――――O―%
 utruck&|‾‾‾‾‾‾‾|≣\__OO―――――OO―O―%
 ulorry&|‾‾‾|≣\__-OO―――O―%
+~road~
+segment&‾‾‾‾‾‾-  -  ______%
