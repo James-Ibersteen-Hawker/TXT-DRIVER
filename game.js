@@ -25,17 +25,17 @@ class Game {
   }
   async SETUP() {
     const self = this;
-    let templates = await (await fetch("templates.txt")).text();
-    templates = templates.split("\r").join("").split("\n").join("");
-    templates = templates.split(/~[^~]+~/);
-    templates.forEach((e, i, a) => (a[i] = e.split("%")));
-    templates.forEach((v) => v.forEach((e, i, a) => (a[i] = e.split("&"))));
-    templates = templates.slice(1);
-    templates.forEach((e, i, a) => (a[i] = e.slice(0, e.length - 1)));
+    const templates = (await (await fetch("templates.txt")).text())
+      .replace(/\r?\n/g, "")
+      .split(/~[^~]+~/)
+      .map((v) => v.split("%"))
+      .map((v) => v.map((e) => e.split("&")))
+      .slice(1)
+      .map((e) => e.slice(0, e.length - 1));
     templates[0].forEach((val) => {
       let [k, v] = val;
       v = [v.slice(0, v.length / 2), v.slice(v.length / 2)];
-      v.forEach((e, i, a) => (a[i] = e.split("")));
+      v.map((e) => e.split(""));
       self.templates[k] = class extends self.BASECLASS {
         constructor(x, y) {
           super(x, y);
@@ -43,8 +43,8 @@ class Game {
         }
       };
     });
-    let debugtemplate = new self.templates.car().template;
-    console.log(debugtemplate);
+    let debugtemplate = new self.templates.car(0,1).template;
+    alert(debugtemplate);
   }
 }
 
