@@ -15,7 +15,6 @@ class Game {
         constructor(x, y) {
           (this.x = x), (this.y = y);
         }
-        overlaySelf(target, x, y) {}
         move() {}
         checkLane() {}
         collide() {}
@@ -25,6 +24,21 @@ class Game {
   }
   async SETUP() {
     const self = this;
+    Array.prototype.OVER = function (target, x, y) {
+      if (
+        x < 0 - this[0].length ||
+        y < 0 - this.length ||
+        y > target.length ||
+        x > target[0].length
+      )
+        return false;
+      this.forEach((e, inY) => {
+        e.forEach((a, inX) => {
+          if (target[y + inY]?.[x + inX]) target[y + inY][x + inX] = a;
+        });
+      });
+      return true;
+    };
     const templates = (await (await fetch("templates.txt")).text())
       .replace(/\r?\n/g, "")
       .split(/~[^~]+~/)
@@ -43,8 +57,15 @@ class Game {
         }
       };
     });
-    let debugtemplate = new self.templates.car(0,1).template;
-    alert(debugtemplate);
+    let debugtemplate = new self.templates.car(0, 1).template;
+    // alert(debugtemplate);
+    let cap = new Array(8).fill(null).map(() => new Array(8).fill(1));
+    [
+      [0, 0],
+      [0, 0],
+    ].OVER(cap, 2, 2);
+    alert(cap[2]);
+    alert(cap[3]);
   }
 }
 
