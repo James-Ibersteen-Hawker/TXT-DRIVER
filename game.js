@@ -12,7 +12,7 @@ class Game {
       (this.GAMEWIDTH = GAMEWIDTH),
       (this.RENDERTO = RENDERTO),
       (this.QUEUE = []),
-      (this.templates = {}),
+      (this.TMPLS = {}),
       ((this.BASECLASS = class {
         x;
         y;
@@ -43,6 +43,15 @@ class Game {
       });
       return true;
     };
+    Array.prototype.DIV = function (num) {
+      return new Array(num)
+        .fill(null)
+        .map((_, b) =>
+          new Array(Math.round(this.length / num))
+            .fill(null)
+            .map((_, i) => this[b * Math.round(this.length / num) + i])
+        );
+    };
     const templates = (await (await fetch("templates.txt")).text())
       .replace(/\r?\n/g, "")
       .split(/~[^~]+~/)
@@ -52,9 +61,8 @@ class Game {
       .map((e) => e.slice(0, e.length - 1));
     templates[0].forEach((val) => {
       let [k, v] = val;
-      v = [v.slice(0, v.length / 2), v.slice(v.length / 2)];
-      v.map((e) => e.split(""));
-      self.templates[k] = class extends self.BASECLASS {
+      v = Array.from(v).DIV(2);
+      self.TMPLS[k] = class extends self.BASECLASS {
         constructor(x, y) {
           super(x, y);
           this.template = v;
@@ -62,40 +70,42 @@ class Game {
       };
     });
     const road = templates.at(-1)[0];
-    const segment = [
-      road[1].slice(0, Math.floor(road[1].length / 3)).split(""),
-      road[1]
-        .slice(
-          Math.floor(road[1].length / 3),
-          Math.floor(road[1].length / 3) * 2
-        )
-        .split(""),
-      road[1].slice(Math.floor(road[1].length / 3) * 2).split(""),
-    ];
-    self.templates[road[0]] = segment;
+    self.TMPLS[road[0]] = Array.from(road[1]).DIV(3);
     self.PLAY();
   }
   PLAY() {
     const self = this;
-    self.ROAD = new Array(self.LANES)
+    self.ROAD = new Array(self.TMPLS.SGMT.length * self.LANES)
       .fill(null)
-      .map(() => new Array(self.GAMEWIDTH).fill(" "));
+      .map(() =>
+        new Array(
+          self.GAMEWIDTH - (self.GAMEWIDTH % self.TMPLS.SGMT[0].length)
+        ).fill(" ")
+      );
     Function.prototype.REPEAT = function (num, ...args) {
       for (let i = 0; i < num; i++) this(i, ...args);
     };
-    let offset = 0;
-    while (offset < self.ROAD[0].length) {
-      self.templates.segment.OVER(self.ROAD, offset, 0);
-      offset += self.templates.segment[0].length;
-    }
-    self.ROAD.forEach((e) => {
-      e.forEach((a) => {
-        self.RENDERTO.append(a);
-      });
-      self.RENDERTO.insertAdjacentHTML("beforeend", "<br>");
+    self.ROAD.map((e, i, a) => {
+      const row = i % self.TMPLS.SGMT.length;
+      const segment =
+        Math.floor(i / self.TMPLS.SGMT.length) * self.TMPLS.SGMT.length;
+      let offset = -Math.round(Math.random() * row);
+      while (offset < self.ROAD[0].length) {
+        self.TMPLS.SGMT.OVER(a, offset, segment);
+        offset += self.TMPLS.SGMT[0].length;
+      }
     });
+    //temp render, will go to proxies soon
+    self.ROAD.render = function (loc) {
+      loc.innerHTML = "";
+      this.forEach((e) => {
+        e.forEach((a) => loc.append(a));
+        loc.insertAdjacentHTML("beforeend", "<br>");
+      });
+    };
+    self.ROAD.render(self.RENDERTO);
     console.log(self.ROAD);
   }
 }
 
-const myGame = new Game(1, 1, 3, 50, document.querySelector("#game"));
+const myGame = new Game(1, 1, 10, 50, document.querySelector("#game"));
