@@ -12,6 +12,7 @@ class Game {
       (this.GAMEWIDTH = GAMEWIDTH),
       (this.RENDERTO = RENDERTO),
       (this.QUEUE = []),
+      (this.RENDERQUEUE = false),
       (this.TMPLS = {}),
       ((this.BASECLASS = class {
         x;
@@ -47,9 +48,9 @@ class Game {
       return new Array(num)
         .fill(null)
         .map((_, b) =>
-          new Array(Math.round(this.length / num))
+          new Array(Math.ceil(this.length / num))
             .fill(null)
-            .map((_, i) => this[b * Math.round(this.length / num) + i])
+            .map((_, i) => this[b * Math.ceil(this.length / num) + i])
         );
     };
     const templates = (await (await fetch("templates.txt")).text())
@@ -82,20 +83,31 @@ class Game {
           self.GAMEWIDTH - (self.GAMEWIDTH % self.TMPLS.SGMT[0].length)
         ).fill(" ")
       );
-    Function.prototype.REPEAT = function (num, ...args) {
-      for (let i = 0; i < num; i++) this(i, ...args);
-    };
-    self.ROAD.map((e, i, a) => {
+    let inc = 0;
+    self.ROAD.forEach((_, i, a) => {
       const row = i % self.TMPLS.SGMT.length;
       const segment =
         Math.floor(i / self.TMPLS.SGMT.length) * self.TMPLS.SGMT.length;
-      let offset = -Math.round(Math.random() * row);
-      while (offset < self.ROAD[0].length) {
-        self.TMPLS.SGMT.OVER(a, offset, segment);
-        offset += self.TMPLS.SGMT[0].length;
+      inc = i;
+      if (inc % self.TMPLS.SGMT.length == 0) {
+        let offset = -Math.round(Math.random() * row);
+        while (offset < self.ROAD[0].length) {
+          self.TMPLS.SGMT.OVER(a, offset, segment);
+          offset += self.TMPLS.SGMT[0].length;
+        }
       }
     });
-    //temp render, will go to proxies soon
+    const roadProxyHandler = {
+      set(t, p, v) {
+        const reflect = Reflect.set(t, p, v);
+        return reflect;
+      },
+      get(t, p, v) {
+        const reflect = Reflect.get(t, p, v);
+        return reflect;
+      },
+    };
+    self.ROAD = self.ROAD.map((e) => new Proxy(e, roadProxyHandler));
     self.ROAD.render = function (loc) {
       loc.innerHTML = "";
       this.forEach((e) => {
@@ -104,7 +116,6 @@ class Game {
       });
     };
     self.ROAD.render(self.RENDERTO);
-    console.log(self.ROAD);
   }
 }
 
