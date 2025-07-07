@@ -76,45 +76,61 @@ class Game {
   }
   PLAY() {
     const self = this;
-    self.ROAD = new Array(self.TMPLS.SGMT.length * self.LANES)
-      .fill(null)
-      .map(() =>
-        new Array(
-          self.GAMEWIDTH - (self.GAMEWIDTH % self.TMPLS.SGMT[0].length)
-        ).fill(" ")
-      );
-    let inc = 0;
-    self.ROAD.forEach((_, i, a) => {
-      const row = i % self.TMPLS.SGMT.length;
-      const segment =
-        Math.floor(i / self.TMPLS.SGMT.length) * self.TMPLS.SGMT.length;
-      inc = i;
-      if (inc % self.TMPLS.SGMT.length == 0) {
-        let offset = -Math.round(Math.random() * row);
-        while (offset < self.ROAD[0].length) {
-          self.TMPLS.SGMT.OVER(a, offset, segment);
-          offset += self.TMPLS.SGMT[0].length;
+    //road
+    {
+      let inc = 0;
+      self.ROAD = new Array(self.TMPLS.SGMT.length * self.LANES)
+        .fill(null)
+        .map(() =>
+          new Array(
+            self.GAMEWIDTH - (self.GAMEWIDTH % self.TMPLS.SGMT[0].length)
+          ).fill(" ")
+        );
+      self.ROAD.forEach((e, i, a) => {
+        const row = i % self.TMPLS.SGMT.length;
+        const segment =
+          Math.floor(i / self.TMPLS.SGMT.length) * self.TMPLS.SGMT.length;
+        inc = i;
+        if (inc % self.TMPLS.SGMT.length == 0) {
+          let offset = -Math.round(Math.random() * row);
+          while (offset < e.length) {
+            self.TMPLS.SGMT.OVER(a, offset, segment);
+            offset += self.TMPLS.SGMT[0].length;
+          }
         }
-      }
-    });
-    const roadProxyHandler = {
-      set(t, p, v) {
-        const reflect = Reflect.set(t, p, v);
-        return reflect;
-      },
-      get(t, p, v) {
-        const reflect = Reflect.get(t, p, v);
-        return reflect;
-      },
-    };
-    self.ROAD = self.ROAD.map((e) => new Proxy(e, roadProxyHandler));
-    self.ROAD.render = function (loc) {
-      loc.innerHTML = "";
-      this.forEach((e) => {
-        e.forEach((a) => loc.append(a));
-        loc.insertAdjacentHTML("beforeend", "<br>");
       });
-    };
+      const roadProxyHandler = {
+        set(t, p, v) {
+          const reflect = Reflect.set(t, p, v);
+          return reflect;
+        },
+        get(t, p, v) {
+          const reflect = Reflect.get(t, p, v);
+          return reflect;
+        },
+      };
+      self.ROAD = self.ROAD.map((e) => new Proxy(e, roadProxyHandler));
+      self.ROAD.render = function (loc) {
+        loc.innerHTML = "";
+        this.forEach((e) => {
+          e.forEach((a) => loc.append(a));
+          loc.insertAdjacentHTML("beforeend", "<br>");
+        });
+      };
+      self.ROADBASE = [];
+      self.ROAD.forEach((e) =>
+        self.ROADBASE.push(
+          new Proxy([...e], {
+            set() {
+              throw new Error("cannot set ROADBASE");
+            },
+            get(t, p, v) {
+              return Reflect.get(t, p, v);
+            },
+          })
+        )
+      );
+    }
     self.ROAD.render(self.RENDERTO);
   }
 }
