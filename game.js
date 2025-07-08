@@ -11,14 +11,29 @@ class Game {
       (this.LANES = LANES),
       (this.GAMEWIDTH = GAMEWIDTH),
       (this.RENDERTO = RENDERTO),
-      (this.QUEUE = []),
+      (this.QUEUE = new Proxy([], {
+        get(t, p, v) {
+          if (p === "push") {
+            return function (...args) {
+              let reflect = Reflect.apply(Array.prototype.push, t, args);
+              t.PROPSORT("z");
+              return reflect;
+            };
+          }
+        },
+      })),
       (this.RENDERQUEUE = false),
       (this.TMPLS = {}),
       ((this.BASECLASS = class {
         x;
         y;
-        constructor(x, y) {
-          (this.x = x), (this.y = y);
+        z;
+        target;
+        constructor(x, y, z, target) {
+          (this.x = x), (this.y = y), (this.z = z), (this.target = target);
+        }
+        RENDER() {
+          this.template.OVER(this.target, this.x, this.y);
         }
         move() {}
         checkLane() {}
@@ -53,6 +68,9 @@ class Game {
             .map((_, i) => this[b * Math.ceil(this.length / num) + i])
         );
     };
+    Array.prototype.PROPSORT = function (prop) {
+      this.sort((a, b) => a[prop] - b[prop]);
+    };
     const templates = (await (await fetch("templates.txt")).text())
       .replace(/\r?\n/g, "")
       .split(/~[^~]+~/)
@@ -64,8 +82,8 @@ class Game {
       let [k, v] = val;
       v = Array.from(v).DIV(2);
       self.TMPLS[k] = class extends self.BASECLASS {
-        constructor(x, y) {
-          super(x, y);
+        constructor(x, y, z, target) {
+          super(x, y, z, target);
           this.template = v;
         }
       };
@@ -118,21 +136,22 @@ class Game {
         });
       };
       self.ROADBASE = [];
-      self.ROAD.forEach((e) =>
-        self.ROADBASE.push(
-          new Proxy([...e], {
-            set() {
-              throw new Error("cannot set ROADBASE");
-            },
-            get(t, p, v) {
-              return Reflect.get(t, p, v);
-            },
-          })
-        )
-      );
+      self.ROAD.forEach((e) => {
+        const freeze = [...e];
+        Object.freeze(freeze);
+        return freeze;
+      });
+      Object.freeze(self.ROADBASE);
+    }
+    //queue management
+    {
+      Object.setPrototypeOf(self.QUEUE, Array.prototype);
+      self.QUEUE.RUN = function () {
+        self.QUEUE.PROPSORT("z");
+      };
     }
     self.ROAD.render(self.RENDERTO);
   }
 }
 
-const myGame = new Game(1, 1, 10, 50, document.querySelector("#game"));
+const myGame = new Game(1, 1, 3, 50, document.querySelector("#game"));
