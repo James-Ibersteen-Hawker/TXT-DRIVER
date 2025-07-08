@@ -11,20 +11,17 @@ class Game {
       (this.LANES = LANES),
       (this.GAMEWIDTH = GAMEWIDTH),
       (this.RENDERTO = RENDERTO),
-      (this.QUEUE = new Proxy([], {
-        get(t, p, v) {
-          if (p === "push") {
-            return function (...args) {
-              let reflect = Reflect.apply(Array.prototype.push, t, args);
-              t.PROPSORT("z");
-              return reflect;
-            };
-          }
-        },
-      })),
+      (this.QUEUE = (() => {
+        let src = [];
+        src.RUN = function () {
+          this.PROPSORT("z");
+          this.forEach((e) => e.RENDER());
+        };
+        return src;
+      })()),
       (this.RENDERQUEUE = false),
       (this.TMPLS = {}),
-      ((this.BASECLASS = class {
+      (this.BASECLASS = class {
         x;
         y;
         z;
@@ -39,7 +36,7 @@ class Game {
         checkLane() {}
         collide() {}
       }),
-      (this.USER = undefined));
+      (this.USER = undefined);
     this.SETUP();
   }
   async SETUP() {
@@ -145,13 +142,16 @@ class Game {
     }
     //queue management
     {
-      Object.setPrototypeOf(self.QUEUE, Array.prototype);
-      self.QUEUE.RUN = function () {
-        self.QUEUE.PROPSORT("z");
-      };
+      self.QUEUE.push(new self.TMPLS["bus"](1, 1, 2, self.ROAD));
+      self.QUEUE.RUN();
     }
     self.ROAD.render(self.RENDERTO);
   }
 }
 
 const myGame = new Game(1, 1, 3, 50, document.querySelector("#game"));
+window.onclick = function () {
+  myGame.QUEUE.push(new myGame.TMPLS.car(8, 2, 4, myGame.ROAD));
+  myGame.QUEUE.RUN();
+  myGame.ROAD.render(myGame.RENDERTO);
+};
