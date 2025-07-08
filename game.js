@@ -126,11 +126,8 @@ class Game {
       };
       self.ROAD = self.ROAD.map((e) => new Proxy(e, roadProxyHandler));
       self.ROAD.render = function (loc) {
-        loc.innerHTML = "";
-        this.forEach((e) => {
-          e.forEach((a) => loc.append(a));
-          loc.insertAdjacentHTML("beforeend", "<br>");
-        });
+        let result = this.map((row) => row.join("")).join("<br>");
+        loc.innerHTML = result;
       };
       self.ROADBASE = [];
       self.ROAD.forEach((e) => {
