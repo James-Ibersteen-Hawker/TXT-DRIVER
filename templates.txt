@@ -12,8 +12,8 @@ truck trailer&‾‾‾‾‾‾‾|O―――――OO%
 truck double&‾‾‾‾‾‾‾|‾‾‾‾‾‾‾|O―――――OOO―――――OO%
 truck none& O%
 ~user~
-ucar&__/≣|≣\___―O―――――O―%
-utruck&|‾‾‾‾‾‾‾|≣\__OO―――――OO―O―%
-ulorry&|‾‾‾|≣\__-OO―――O―%
+ucar&__/≣|≣\__―O―――――O―%
+ulorry&|‾‾‾|≣\_-OO―――O―%
+utruck&|‾‾‾‾‾‾‾|≣\_OO―――――OO―O―%
 ~road~
 SGMT&‾‾‾‾‾‾-  -  ______%
