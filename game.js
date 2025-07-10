@@ -122,6 +122,7 @@ class Game {
   }
   PLAY(self) {
     const seg = self.TMPLS.SGMT;
+    self.LANES = Math.max(3, self.LANES);
     self.LEVEL = Math.min(
       Object.keys(self.TMPLS).filter((v) => v[0] === "u").length,
       self.LEVEL
