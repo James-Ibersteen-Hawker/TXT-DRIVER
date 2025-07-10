@@ -61,12 +61,11 @@ class Game {
       return true;
     };
     Array.prototype.DIV = function (num) {
+      const dist = Math.ceil(this.length / num);
       return new Array(num)
         .fill(null)
         .map((_, b) =>
-          new Array(Math.ceil(this.length / num))
-            .fill(null)
-            .map((_, i) => this[b * Math.ceil(this.length / num) + i])
+          new Array(dist).fill(null).map((_, i) => this[b * dist + i])
         );
     };
     Array.prototype.PROPSORT = function (prop) {
@@ -79,35 +78,31 @@ class Game {
       .map((v) => v.map((e) => e.split("&")))
       .slice(1)
       .map((e) => e.slice(0, e.length - 1));
-    templates[0].forEach((val) => {
-      let [k, v] = val;
-      v = Array.from(v).DIV(2);
-      self.TMPLS[k] = class extends self.BASECLASS {
-        constructor(x, y, target) {
-          super(x, y, target);
-          this.template = v;
-        }
-      };
-    });
-    const road = templates.at(-1)[0];
-    self.TMPLS[road[0]] = Array.from(road[1]).DIV(3);
-    self.USER = [];
-    templates.at(-2).forEach((val) => {
-      let [k, v] = val;
-      v = Array.from(v).DIV(2);
-      self.TMPLS[k] = class extends self.BASECLASS {
-        constructor(x, y, z, target) {
-          super(x, y, z, target);
-          this.template = v;
-        }
-      };
-      self.USER.push(k);
+    templates.forEach((e, i, a) => {
+      if (i !== a.length - 1) {
+        if (i === 2) self.USER = [];
+        e.forEach(([k, v]) => {
+          self.TMPLS[k] = class extends self.BASECLASS {
+            constructor(x, y, target) {
+              super(x, y, target);
+              this.template = Array.from(v).DIV(2);
+            }
+          };
+          if (i === 2) self.USER.push(k);
+        });
+      } else {
+        const [name, val] = templates[3][0];
+        self.TMPLS[name] = Array.from(val).DIV(3);
+      }
     });
     self.PLAY();
   }
   PLAY() {
     const self = this;
-    self.LEVEL = Math.min(3, self.LEVEL);
+    self.LEVEL = Math.min(
+      Object.keys(self.TMPLS).filter((v) => v[0] === "u").length,
+      self.LEVEL
+    );
     self.TICK = setInterval(() => {
       console.log("tick");
       self.QUEUE.RUN();
@@ -115,7 +110,6 @@ class Game {
     }, self.SPEED * (1 / self.LEVEL));
     //road
     {
-      let inc = 0;
       self.ROAD = new Array(self.TMPLS.SGMT.length * self.LANES)
         .fill(null)
         .map(() =>
@@ -127,8 +121,7 @@ class Game {
         const row = i % self.TMPLS.SGMT.length;
         const segment =
           Math.floor(i / self.TMPLS.SGMT.length) * self.TMPLS.SGMT.length;
-        inc = i;
-        if (inc % self.TMPLS.SGMT.length == 0) {
+        if (i % self.TMPLS.SGMT.length === 0) {
           let offset = -Math.round(Math.random() * row);
           while (offset < e.length) {
             self.TMPLS.SGMT.OVER(a, offset, segment);
@@ -143,23 +136,22 @@ class Game {
           return reflect;
         },
         get(t, p, v) {
-          const reflect = Reflect.get(t, p, v);
-          return reflect;
+          return Reflect.get(t, p, v);
         },
       };
-      self.ROAD = self.ROAD.map((e) => new Proxy(e, roadProxyHandler));
+      self.ROADBASE = [];
+      self.ROAD = self.ROAD.map((e) => {
+        const freeze = [...e];
+        Object.freeze(freeze);
+        self.ROADBASE.push(freeze);
+        return new Proxy(e, roadProxyHandler);
+      });
+      Object.freeze(self.ROADBASE);
       self.ROAD.render = function (loc) {
-        let result = this.map((row) => row.join("")).join("<br>");
+        const result = this.map((row) => row.join("")).join("<br>");
         loc.innerHTML = result;
         self.RENDERQUEUE = false;
       };
-      self.ROADBASE = [];
-      self.ROAD.forEach((e) => {
-        const freeze = [...e];
-        Object.freeze(freeze);
-        return freeze;
-      });
-      Object.freeze(self.ROADBASE);
     }
     //lane lookup
     {
@@ -172,6 +164,22 @@ class Game {
               .map((_, i) => i + u * self.TMPLS.SGMT.length)
           ),
         list: null,
+        laneOf: function (index) {
+          return this.list.find((e) => e.index === index).set || undefined;
+        },
+        inLane: function (lane, keyword) {
+          let result = this.sets[lane];
+          switch (keyword) {
+            case "top":
+              return result[0];
+            case "middle":
+              return result[Math.floor(result.length / 2)];
+            case "bottom":
+              return result.at(-1);
+            default:
+              return result;
+          }
+        },
       };
       self.LANELOOKUP.list = new Array(self.ROAD.length)
         .fill(null)
@@ -183,22 +191,6 @@ class Game {
             ),
           };
         });
-      self.LANELOOKUP.laneOf = function (index) {
-        return this.list.find((e) => e.index == index).set || undefined;
-      };
-      self.LANELOOKUP.inLane = function (lane, keyword) {
-        let result = this.sets[lane];
-        switch (keyword) {
-          case "top":
-            return result[0];
-          case "middle":
-            return result[Math.floor(result.length / 2)];
-          case "bottom":
-            return result.at(-1);
-          default:
-            return result;
-        }
-      };
     }
     //user control
     {
@@ -217,7 +209,6 @@ class Game {
       self.USER.SETUP(self);
       self.QUEUE.push(self.USER);
     }
-    self.ROAD.render(self.RENDERTO);
   }
 }
 
