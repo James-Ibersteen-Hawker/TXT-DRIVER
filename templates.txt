@@ -1,16 +1,14 @@
 ~basic~
 car&__/‾|‾\__―O―――――O―%
 van&/‾|‾‾‾|―O―――OO%
-truck&_/‾|―O―O%
-limo&__/‾|‾‾‾‾|‾\___―O――――――――――O―%
+truckFlat&_/‾|========―O―OO―――――OO%
+truckSolid&_/‾|‾‾‾‾‾‾‾|―O―OO―――――OO%
+truckDouble&_/‾|‾‾‾‾‾‾‾|‾‾‾‾‾‾‾|―O―OO―――――OOO―――――OO%
+truckHead&_/‾|―O―O0%
+limo&__/‾|‾‾‾‾|‾\__―O――――――――――O―%
 motorcycle& /__ O––/O%
 bus&/‾|‾‾‾‾‾‾|‾\―O――――――――O―%
 lorry&_/‾|‾‾‾|―O―――OO-%
-~extension~
-truck flatbed&========O―――――OO%
-truck trailer&‾‾‾‾‾‾‾|O―――――OO%
-truck double&‾‾‾‾‾‾‾|‾‾‾‾‾‾‾|O―――――OOO―――――OO%
-truck none& O%
 ~user~
 ucar&__/≣|≣\__―O―――――O―%
 ulorry&|‾‾‾|≣\_-OO―――O―%

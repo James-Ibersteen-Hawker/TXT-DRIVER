@@ -62,7 +62,8 @@ class Game {
           }
         },
       }),
-      (this.USER = []);
+      (this.USER = []),
+      (this.BUILDINGS = []);
     this.SETUP(this);
   }
   async SETUP(self) {
@@ -111,10 +112,10 @@ class Game {
               return this.#template;
             }
           };
-          if (i === 2) self.USER.push(k);
+          if (i === 1) self.USER.push(k);
         });
       } else {
-        const [name, val] = templates[3][0];
+        const [name, val] = templates[2]?.[0];
         self.TMPLS[name] = Array.from(val).DIV(3);
       }
     });
@@ -167,6 +168,46 @@ class Game {
         self.RENDERQUEUE = false;
       };
       Object.freeze(self.ROADBASE);
+    }
+    //building generation
+    {
+      class Building {
+        height;
+        width;
+        windowCount;
+        constructor(height, width, windowCount) {
+          (this.height = height),
+            (this.windowCount = windowCount),
+            (this.width = width);
+          this.MAKE();
+        }
+        MAKE() {
+          let build = new Array(this.height)
+            .fill(null)
+            .map(() => new Array(this.width + 2).fill(""));
+          build[0].fill("‾");
+          build.forEach((e) => (e[0] = e[e.length - 1] = "|"));
+          let windows = [];
+          for (let i = 0; i < this.windowCount; i++) {
+            let [x, y] = [
+              Math.max(1, Math.floor(Math.random() * this.width - 2)),
+              Math.max(1, Math.floor(Math.random() * this.height - 2)),
+            ];
+            let count = 0;
+            while (windows.some((e) => e[0] == x && e[1] == y) && count < 5) {
+              [x, y] = [
+                Math.max(1, Math.floor(Math.random() * this.width - 2)),
+                Math.max(1, Math.floor(Math.random() * this.height - 2)),
+              ];
+              count++;
+            }
+            build[y][x] = "█";
+            windows.push([x, y]);
+          }
+          alert(build);
+        }
+      }
+      let myVar = new Building(5,3,2)
     }
     //lane lookup
     {
