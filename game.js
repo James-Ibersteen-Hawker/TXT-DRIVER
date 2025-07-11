@@ -41,6 +41,7 @@ class Game {
       }),
       (this.SPEED = SPEED),
       (this.ROAD = undefined),
+      (this.BUILDINGS = undefined),
       (this.ROADBASE = []),
       (this.LANELOOKUP = {
         sets: null,
@@ -123,6 +124,9 @@ class Game {
   }
   PLAY(self) {
     const seg = self.TMPLS.SGMT;
+    function random(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
     self.LANES = Math.max(3, self.LANES);
     self.LEVEL = Math.min(
       Object.keys(self.TMPLS).filter((v) => v[0] === "u").length,
@@ -171,43 +175,83 @@ class Game {
     }
     //building generation
     {
+      self.BUILDINGS = new Array(8)
+        .fill(null)
+        .map(() => new Array(self.ROAD[0].length).fill(" "));
+      self.BUILDINGS.add = function (b) {
+        let x, y;
+        x = self.BUILDINGS.at(-1).lastIndexOf("|") + 1;
+        y = this.length - b.length;
+        console.log(x, y);
+        b.OVER(this, x, y);
+        console.log(this);
+      };
       class Building {
         height;
         width;
         windowCount;
         constructor(height, width, windowCount) {
-          (this.height = height),
+          (this.height = height == 0 ? 1 : height),
             (this.windowCount = windowCount),
             (this.width = width);
-          this.MAKE();
+          return this.MAKE();
         }
         MAKE() {
           let build = new Array(this.height)
             .fill(null)
-            .map(() => new Array(this.width + 2).fill(""));
+            .map(() => new Array(this.width + 2).fill(" "));
           build[0].fill("‾");
           build.forEach((e) => (e[0] = e[e.length - 1] = "|"));
           let windows = [];
           for (let i = 0; i < this.windowCount; i++) {
             let [x, y] = [
-              Math.max(1, Math.floor(Math.random() * this.width - 2)),
-              Math.max(1, Math.floor(Math.random() * this.height - 2)),
+              random(1, build[0].length - 2),
+              random(1, build.length - 2),
             ];
             let count = 0;
             while (windows.some((e) => e[0] == x && e[1] == y) && count < 5) {
               [x, y] = [
-                Math.max(1, Math.floor(Math.random() * this.width - 2)),
-                Math.max(1, Math.floor(Math.random() * this.height - 2)),
+                random(1, build[0].length - 2),
+                random(1, build.length - 2),
               ];
               count++;
             }
-            build[y][x] = "█";
-            windows.push([x, y]);
+            if (!windows.some((e) => e[0] == x && e[1] == y)) {
+              windows.push([x, y]);
+              console.log(x, y);
+              console.log(
+                build,
+                build[y][x],
+                x,
+                y,
+                build.length,
+                build[0].length
+              );
+              build[y][x] = "█";
+            }
           }
-          alert(build);
+          return build;
         }
       }
-      let myVar = new Building(5,3,2)
+      let myVar = new Building(
+        Math.round(Math.random() * self.BUILDINGS.length),
+        3,
+        Math.round(Math.random() * 5) == 0 ? 1 : Math.round(Math.random() * 5)
+      );
+      let myVar2 = new Building(
+        Math.round(Math.random() * self.BUILDINGS.length),
+        3,
+        Math.round(Math.random() * 5) == 0 ? 1 : Math.round(Math.random() * 5)
+      );
+      let myVar3 = new Building(
+        Math.round(Math.random() * self.BUILDINGS.length),
+        3,
+        Math.round(Math.random() * 5) == 0 ? 1 : Math.round(Math.random() * 5)
+      );
+      console.log("adding");
+      self.BUILDINGS.add(myVar);
+      self.BUILDINGS.add(myVar2);
+      self.BUILDINGS.add(myVar3);
     }
     //lane lookup
     {
