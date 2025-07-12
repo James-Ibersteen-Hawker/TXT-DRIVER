@@ -177,8 +177,9 @@ class Game {
         constructor(height, width, windowCount) {
           (this.height = height == 0 ? 1 : height),
             (this.windowCount = windowCount),
-            (this.width = width);
-          return this.MAKE();
+            (this.width = width),
+            (this.x = 0),
+            (this.y = 0);
         }
         MAKE() {
           let build = new Array(this.height)
@@ -218,42 +219,51 @@ class Game {
         }
       }
       self.BUILDINGS = {
-        arr: new Array(8)
+        ARR: new Array(8)
           .fill(null)
           .map(() => new Array(self.ROAD[0].length).fill(" ")),
-      };
-      self.BUILDINGS.ADD = async function (b) {
-        return new Promise((resolve, reject) => {
-          console.log("added");
-          let x, y;
-          x = self.BUILDINGS.arr.at(-1).lastIndexOf("|") + 1;
-          y = this.arr.length - b.length;
-          b.OVER(this.arr, x, y);
-          resolve();
-        });
-      };
-      self.BUILDINGS.MOVE = async function (dir) {
-        return new Promise((resolve, reject) => {
-          this.arr = this.arr.map((b) => {
-            return b.map((_, i, a) => {
-              if (a[i + -dir]) return a[i + -dir];
-              else return " ";
+        QUEUE: [],
+        async RENDER() {
+          return new Promise((resolve, reject) => {
+            const result = [];
+            this.ARR = this.ARR.map((e) => {
+              return e.map(() => " ");
             });
+            this.QUEUE.forEach((e) => {
+              if (e.MAKE().OVER(this.ARR, e.x, e.y) == true) result.push(e);
+            });
+            this.QUEUE = result;
+            resolve();
           });
-          resolve();
-        });
+        },
+        async ADD(b) {
+          return new Promise((resolve, reject) => {
+            const last = self.BUILDINGS.QUEUE.at(-1);
+            b.x = last ? last.x + last.width + 2 : 0;
+            b.y = self.BUILDINGS.ARR.length - b.height;
+            self.BUILDINGS.QUEUE.push(b);
+            console.log(b);
+            resolve();
+          });
+        },
+        async MOVE(dir) {
+          return new Promise((resolve, reject) => {
+            self.BUILDINGS.QUEUE.forEach((e) => (e.x += dir));
+            resolve();
+          });
+        },
+        async CLOCK(dir) {
+          await this.ADD(
+            new Building(random(3, this.ARR.length), random(3, 5), random(3, 6))
+          );
+          await this.MOVE(dir);
+          await this.RENDER();
+          console.log(this.ARR);
+        },
       };
-      self.BUILDINGS.CLOCK = async function (dir) {
-        await this.MOVE(dir);
-        await this.ADD(
-          new Building(
-            random(4, self.BUILDINGS.arr.length),
-            random(3, 5),
-            random(2, 6)
-          )
-        );
-        console.log(this.arr);
-      };
+      await self.BUILDINGS.CLOCK(-1);
+      await self.BUILDINGS.CLOCK(-1);
+      await self.BUILDINGS.CLOCK(-1);
     }
     //lane lookup
     {
@@ -292,12 +302,12 @@ class Game {
       self.QUEUE.push(self.USER);
     }
     //tick and game run
-    self.TICK = setInterval(() => {
-      console.log("tick");
-      self.QUEUE.RUN();
-      // self.BUILDINGS.CLOCK(-1);
-      if (self.RENDERQUEUE) self.ROAD.render();
-    }, self.SPEED * (1 / self.LEVEL));
+    // self.TICK = setInterval(() => {
+    //   console.log("tick");
+    //   self.QUEUE.RUN();
+    //   // self.BUILDINGS.CLOCK(-1);
+    //   if (self.RENDERQUEUE) self.ROAD.render();
+    // }, self.SPEED * (1 / self.LEVEL));
   }
 }
 
