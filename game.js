@@ -122,7 +122,7 @@ class Game {
     });
     self.PLAY(self);
   }
-  PLAY(self) {
+  async PLAY(self) {
     const seg = self.TMPLS.SGMT;
     function random(min, max) {
       return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -132,11 +132,6 @@ class Game {
       Object.keys(self.TMPLS).filter((v) => v[0] === "u").length,
       self.LEVEL
     );
-    self.TICK = setInterval(() => {
-      console.log("tick");
-      self.QUEUE.RUN();
-      if (self.RENDERQUEUE) self.ROAD.render();
-    }, self.SPEED * (1 / self.LEVEL));
     //road
     {
       const roadProxyHandler = {
@@ -175,17 +170,6 @@ class Game {
     }
     //building generation
     {
-      self.BUILDINGS = new Array(8)
-        .fill(null)
-        .map(() => new Array(self.ROAD[0].length).fill(" "));
-      self.BUILDINGS.add = function (b) {
-        let x, y;
-        x = self.BUILDINGS.at(-1).lastIndexOf("|") + 1;
-        y = this.length - b.length;
-        console.log(x, y);
-        b.OVER(this, x, y);
-        console.log(this);
-      };
       class Building {
         height;
         width;
@@ -218,40 +202,58 @@ class Game {
             }
             if (!windows.some((e) => e[0] == x && e[1] == y)) {
               windows.push([x, y]);
-              console.log(x, y);
-              console.log(
-                build,
-                build[y][x],
-                x,
-                y,
-                build.length,
-                build[0].length
-              );
+              // console.log(x, y);
+              // console.log(
+              //   build,
+              //   build[y][x],
+              //   x,
+              //   y,
+              //   build.length,
+              //   build[0].length
+              // );
               build[y][x] = "█";
             }
           }
           return build;
         }
       }
-      let myVar = new Building(
-        Math.round(Math.random() * self.BUILDINGS.length),
-        3,
-        Math.round(Math.random() * 5) == 0 ? 1 : Math.round(Math.random() * 5)
-      );
-      let myVar2 = new Building(
-        Math.round(Math.random() * self.BUILDINGS.length),
-        3,
-        Math.round(Math.random() * 5) == 0 ? 1 : Math.round(Math.random() * 5)
-      );
-      let myVar3 = new Building(
-        Math.round(Math.random() * self.BUILDINGS.length),
-        3,
-        Math.round(Math.random() * 5) == 0 ? 1 : Math.round(Math.random() * 5)
-      );
-      console.log("adding");
-      self.BUILDINGS.add(myVar);
-      self.BUILDINGS.add(myVar2);
-      self.BUILDINGS.add(myVar3);
+      self.BUILDINGS = {
+        arr: new Array(8)
+          .fill(null)
+          .map(() => new Array(self.ROAD[0].length).fill(" ")),
+      };
+      self.BUILDINGS.ADD = async function (b) {
+        return new Promise((resolve, reject) => {
+          console.log("added");
+          let x, y;
+          x = self.BUILDINGS.arr.at(-1).lastIndexOf("|") + 1;
+          y = this.arr.length - b.length;
+          b.OVER(this.arr, x, y);
+          resolve();
+        });
+      };
+      self.BUILDINGS.MOVE = async function (dir) {
+        return new Promise((resolve, reject) => {
+          this.arr = this.arr.map((b) => {
+            return b.map((_, i, a) => {
+              if (a[i + -dir]) return a[i + -dir];
+              else return " ";
+            });
+          });
+          resolve();
+        });
+      };
+      self.BUILDINGS.CLOCK = async function (dir) {
+        await this.MOVE(dir);
+        await this.ADD(
+          new Building(
+            random(4, self.BUILDINGS.arr.length),
+            random(3, 5),
+            random(2, 6)
+          )
+        );
+        console.log(this.arr);
+      };
     }
     //lane lookup
     {
@@ -289,6 +291,13 @@ class Game {
       self.USER.SETUP(self);
       self.QUEUE.push(self.USER);
     }
+    //tick and game run
+    self.TICK = setInterval(() => {
+      console.log("tick");
+      self.QUEUE.RUN();
+      // self.BUILDINGS.CLOCK(-1);
+      if (self.RENDERQUEUE) self.ROAD.render();
+    }, self.SPEED * (1 / self.LEVEL));
   }
 }
 
