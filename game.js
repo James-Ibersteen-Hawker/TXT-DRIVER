@@ -342,9 +342,9 @@ class Game {
     }
     // tick and game run
     self.TICK = setInterval(async () => {
-      const dir = -2;
+      const dir = -1;
       await self.BUILDINGS.CLOCK(dir, [3, 5], [2, 6]);
-      self.ROAD.SHIFT(dir | 1);
+      self.ROAD.SHIFT(dir);
       if (self.RENDERQUEUE) RENDER();
     }, self.SPEED * (1 / self.LEVEL));
   }
