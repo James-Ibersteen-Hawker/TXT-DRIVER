@@ -162,7 +162,14 @@ class Game {
         return new Proxy(e, roadProxyHandler);
       });
       self.ROAD.render = function () {
-        const result = this.map((row) => row.join("")).join("<br>");
+        const temp = [...self.BUILDINGS.ARR, ...this];
+        // temp.splice(0, 0, new Array(temp[0].length).fill("-"));
+        // temp.push(new Array(temp[0].length).fill("-"));
+        // temp.forEach((e) => {
+        //   e.push("|");
+        //   e.splice(0, 0, "|");
+        // });
+        const result = temp.map((row) => row.join("")).join("<br>");
         self.RENDERTO.innerHTML = result;
         self.RENDERQUEUE = false;
       };
@@ -178,8 +185,10 @@ class Game {
           (this.height = height == 0 ? 1 : height),
             (this.windowCount = windowCount),
             (this.width = width),
+            (this.arr = null),
             (this.x = 0),
             (this.y = 0);
+          this.MAKE();
         }
         MAKE() {
           let build = new Array(this.height)
@@ -215,7 +224,7 @@ class Game {
               build[y][x] = "█";
             }
           }
-          return build;
+          this.arr = build;
         }
       }
       self.BUILDINGS = {
@@ -230,9 +239,10 @@ class Game {
               return e.map(() => " ");
             });
             this.QUEUE.forEach((e) => {
-              if (e.MAKE().OVER(this.ARR, e.x, e.y) == true) result.push(e);
+              if (e.arr.OVER(this.ARR, e.x, e.y) == true) result.push(e);
             });
             this.QUEUE = result;
+            self.RENDERQUEUE = true;
             resolve();
           });
         },
@@ -252,18 +262,19 @@ class Game {
             resolve();
           });
         },
-        async CLOCK(dir) {
+        async CLOCK(dir, [wMin, wMax], [winMin, winMax]) {
           await this.ADD(
-            new Building(random(3, this.ARR.length), random(3, 5), random(3, 6))
+            new Building(
+              random(3, this.ARR.length),
+              random(wMin, wMax),
+              random(winMin, winMax)
+            )
           );
           await this.MOVE(dir);
           await this.RENDER();
           console.log(this.ARR);
         },
       };
-      await self.BUILDINGS.CLOCK(-1);
-      await self.BUILDINGS.CLOCK(-1);
-      await self.BUILDINGS.CLOCK(-1);
     }
     //lane lookup
     {
@@ -301,13 +312,13 @@ class Game {
       self.USER.SETUP(self);
       self.QUEUE.push(self.USER);
     }
-    //tick and game run
-    // self.TICK = setInterval(() => {
-    //   console.log("tick");
-    //   self.QUEUE.RUN();
-    //   // self.BUILDINGS.CLOCK(-1);
-    //   if (self.RENDERQUEUE) self.ROAD.render();
-    // }, self.SPEED * (1 / self.LEVEL));
+    // tick and game run
+    self.TICK = setInterval(() => {
+      console.log("tick");
+      self.QUEUE.RUN();
+      self.BUILDINGS.CLOCK(-1, [3, 5], [2, 6]);
+      if (self.RENDERQUEUE) self.ROAD.render();
+    }, self.SPEED * (1 / self.LEVEL));
   }
 }
 
