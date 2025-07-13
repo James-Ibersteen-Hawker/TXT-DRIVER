@@ -162,16 +162,27 @@ class Game {
         return new Proxy(e, roadProxyHandler);
       });
       self.ROAD.render = function () {
-        const temp = [...self.BUILDINGS.ARR, ...this];
-        // temp.splice(0, 0, new Array(temp[0].length).fill("-"));
-        // temp.push(new Array(temp[0].length).fill("-"));
-        // temp.forEach((e) => {
-        //   e.push("|");
-        //   e.splice(0, 0, "|");
-        // });
-        const result = temp.map((row) => row.join("")).join("<br>");
-        self.RENDERTO.innerHTML = result;
-        self.RENDERQUEUE = false;
+        try {
+          const temp = [
+            new Array(this[0].length).fill("‾"),
+            ...self.BUILDINGS.ARR,
+            ...this,
+            ...new Array(self.BUILDINGS.ARR.length - 3)
+              .fill(null)
+              .map(() => new Array(this[0].length).fill("░")),
+            new Array(this[0].length).fill("‾"),
+          ];
+          const result = temp
+            .map((row, i) => {
+              if (i != temp.length - 1) return "|" + row.join("") + "|";
+              else return " " + row.join("") + " ";
+            })
+            .join("<br>");
+          self.RENDERTO.innerHTML = result;
+          self.RENDERQUEUE = false;
+        } catch (error) {
+          alert(error);
+        }
       };
       Object.freeze(self.ROADBASE);
     }
@@ -322,4 +333,4 @@ class Game {
   }
 }
 
-const myGame = new Game(1, 1, 3, 50, document.querySelector("#game"), 500);
+const myGame = new Game(1, 1, 3, 100, document.querySelector("#game"), 500);
