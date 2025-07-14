@@ -338,11 +338,11 @@ class Game {
         }
       }
       self.USER = new USER(4, self.LANELOOKUP.inLane(1, "middle"), self.ROAD);
-      // self.QUEUE.push(self.USER);
+      self.QUEUE.push(self.USER);
     }
     // tick and game run
     self.TICK = setInterval(async () => {
-      const dir = -1;
+      const dir = -2;
       await self.BUILDINGS.CLOCK(dir, [3, 5], [2, 6]);
       self.ROAD.SHIFT(dir);
       if (self.RENDERQUEUE) RENDER();
@@ -350,6 +350,6 @@ class Game {
   }
 }
 
-const myGame = new Game(1, 1, 3, 100, document.querySelector("#game"), 300);
+const myGame = new Game(1, 1, 3, 100, document.querySelector("#game"), 100);
 
 //good speed is 100
