@@ -6,7 +6,16 @@ class Game {
   GAMEWIDTH;
   RENDERTO;
   SPEED;
-  constructor(MAXPOINTS, LEVEL, LANES, GAMEWIDTH, RENDERTO, SPEED) {
+  KEYCONTROLS;
+  constructor(
+    MAXPOINTS,
+    LEVEL,
+    LANES,
+    GAMEWIDTH,
+    RENDERTO,
+    SPEED,
+    KEYCONTROLS
+  ) {
     const self = this;
     (this.MAXPOINTS = MAXPOINTS),
       (this.LEVEL = LEVEL),
@@ -71,6 +80,8 @@ class Game {
         },
       }),
       (this.USER = []),
+      (this.KEYCONTROLS = KEYCONTROLS),
+      (this.KEYS = new Set()),
       (this.BUILDINGS = []);
     this.SETUP(self);
   }
@@ -117,7 +128,7 @@ class Game {
             }
             SETUP() {
               this.z = self.LANELOOKUP.laneOf(this.y);
-              console.log(this.template);
+              this.y += self.BUILDINGS.ARR.length;
               this.bounds.TL = [this.x, this.y];
               this.bounds.TR = [this.x + this.template[0].length, this.y];
               this.bounds.BL = [this.x, this.y + this.template.length];
@@ -134,6 +145,15 @@ class Game {
         self.TMPLS[name] = Array.from(val).DIV(3);
       }
     });
+    window.addEventListener("keydown", (event) => {
+      const k = event.key;
+      event.preventDefault();
+      if (self.KEYCONTROLS.includes(k) && !self.KEYS.has(k)) self.KEYS.add(k);
+    });
+    window.addEventListener("keyup", (event) => {
+      const k = event.key;
+      if (self.KEYS.has(k)) self.KEYS.delete(k);
+    });
     self.PLAY(self);
   }
   async PLAY(self) {
@@ -145,16 +165,21 @@ class Game {
       const tempROAD = Array.from({ length: self.ROAD.length }, (_, i) => [
         ...self.ROAD[i],
       ]);
-      self.QUEUE.RUN(tempROAD);
       const temp = [
-        new Array(self.ROAD[0].length).fill("‾"),
         ...self.BUILDINGS.ARR,
         ...tempROAD,
         ...new Array(self.BUILDINGS.ARR.length - 3)
           .fill(null)
           .map(() => new Array(self.ROAD[0].length).fill("░")),
-        new Array(self.ROAD[0].length).fill("‾"),
       ];
+      self.USER.y = Math.min(
+        self.USER.y,
+        self.BUILDINGS.ARR.length + self.ROAD.length - self.USER.template.length
+      );
+      self.USER.y = Math.max(self.BUILDINGS.ARR.length - 1, self.USER.y);
+      self.QUEUE.RUN(temp);
+      temp.splice(0, 0, new Array(self.ROAD[0].length).fill("‾"));
+      temp.push(new Array(self.ROAD[0].length).fill("‾"));
       const result = temp
         .map((row, i) => {
           if (i != temp.length - 1) return "|" + row.join("") + "|";
@@ -328,6 +353,7 @@ class Game {
         }
         SETUP() {
           this.z = self.LANELOOKUP.laneOf(this.y);
+          this.y += self.BUILDINGS.ARR.length;
           this.bounds.TL = [this.x, this.y];
           this.bounds.TR = [this.x + this.template[0].length, this.y];
           this.bounds.BL = [this.x, this.y + this.template.length];
@@ -345,11 +371,16 @@ class Game {
       const dir = -2;
       await self.BUILDINGS.CLOCK(dir, [3, 5], [2, 6]);
       self.ROAD.SHIFT(dir);
+      if (self.KEYS.has(self.KEYCONTROLS[0])) self.USER.y--;
+      if (self.KEYS.has(self.KEYCONTROLS[1])) self.USER.y++;
       if (self.RENDERQUEUE) RENDER();
     }, self.SPEED * (1 / self.LEVEL));
   }
 }
 
-const myGame = new Game(1, 1, 3, 100, document.querySelector("#game"), 100);
+const myGame = new Game(1, 1, 3, 100, document.querySelector("#game"), 100, [
+  "ArrowUp",
+  "ArrowDown",
+]);
 
 //good speed is 100
