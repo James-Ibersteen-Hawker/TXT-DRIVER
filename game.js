@@ -28,6 +28,22 @@ class Game {
           this.PROPSORT("z");
           this.forEach((e) => e.RENDER(loc));
         };
+        src.ADD = function () {
+          const lane = Math.floor(Math.random() * self.ROAD.length);
+          const vehicleArr = Object.entries(self.TMPLS).filter(
+            ([k, v]) => k !== "SGMT" && k[0] !== "u"
+          );
+          this.push(
+            new self.TMPLS[
+              vehicleArr[Math.floor(Math.random() * vehicleArr.length)][0]
+            ](5, 8)
+          );
+        };
+        src.SHIFT = function (dir) {
+          this.forEach((e) => {
+            if (e != self.USER) e.x += dir;
+          });
+        };
         return src;
       })()),
       (this.RENDERQUEUE = false),
@@ -125,6 +141,7 @@ class Game {
             constructor(x, y, target) {
               super(x, y, target);
               this.template = Object.freeze(Array.from(v).DIV(2));
+              this.SETUP();
             }
             SETUP() {
               this.z = self.LANELOOKUP.laneOf(this.y);
@@ -162,32 +179,37 @@ class Game {
       return Math.floor(Math.random() * (max - min + 1)) + min;
     }
     function RENDER() {
-      const tempROAD = Array.from({ length: self.ROAD.length }, (_, i) => [
-        ...self.ROAD[i],
-      ]);
-      const temp = [
-        ...self.BUILDINGS.ARR,
-        ...tempROAD,
-        ...new Array(self.BUILDINGS.ARR.length - 3)
-          .fill(null)
-          .map(() => new Array(self.ROAD[0].length).fill("░")),
-      ];
-      self.USER.y = Math.min(
-        self.USER.y,
-        self.BUILDINGS.ARR.length + self.ROAD.length - self.USER.template.length
-      );
-      self.USER.y = Math.max(self.BUILDINGS.ARR.length - 1, self.USER.y);
-      self.QUEUE.RUN(temp);
-      temp.splice(0, 0, new Array(self.ROAD[0].length).fill("‾"));
-      temp.push(new Array(self.ROAD[0].length).fill("‾"));
-      const result = temp
-        .map((row, i) => {
-          if (i != temp.length - 1) return "|" + row.join("") + "|";
-          else return " " + row.join("") + " ";
-        })
-        .join("<br>");
-      self.RENDERTO.innerHTML = result;
-      self.RENDERQUEUE = false;
+      return new Promise((resolve, reject) => {
+        const tempROAD = Array.from({ length: self.ROAD.length }, (_, i) => [
+          ...self.ROAD[i],
+        ]);
+        const temp = [
+          ...self.BUILDINGS.ARR,
+          ...tempROAD,
+          ...new Array(self.BUILDINGS.ARR.length - 3)
+            .fill(null)
+            .map(() => new Array(self.ROAD[0].length).fill("░")),
+        ];
+        self.USER.y = Math.min(
+          self.USER.y,
+          self.BUILDINGS.ARR.length +
+            self.ROAD.length -
+            self.USER.template.length
+        );
+        self.USER.y = Math.max(self.BUILDINGS.ARR.length - 1, self.USER.y);
+        self.QUEUE.RUN(temp);
+        temp.splice(0, 0, new Array(self.ROAD[0].length).fill("‾"));
+        temp.push(new Array(self.ROAD[0].length).fill("‾"));
+        const result = temp
+          .map((row, i) => {
+            if (i != temp.length - 1) return "|" + row.join("") + "|";
+            else return " " + row.join("") + " ";
+          })
+          .join("<br>");
+        self.RENDERTO.innerHTML = result;
+        self.RENDERQUEUE = false;
+        resolve();
+      });
     }
     self.LANES = Math.max(3, self.LANES);
     self.LEVEL = Math.min(
@@ -367,14 +389,20 @@ class Game {
       self.QUEUE.push(self.USER);
     }
     // tick and game run
+    let tickCounter = 0;
+    let addOffset = 1300;
+    const speed = self.SPEED * (1 / self.LEVEL);
     self.TICK = setInterval(async () => {
       const dir = -2;
       await self.BUILDINGS.CLOCK(dir, [3, 5], [2, 6]);
       self.ROAD.SHIFT(dir);
       if (self.KEYS.has(self.KEYCONTROLS[0])) self.USER.y--;
       if (self.KEYS.has(self.KEYCONTROLS[1])) self.USER.y++;
-      if (self.RENDERQUEUE) RENDER();
-    }, self.SPEED * (1 / self.LEVEL));
+      if (self.RENDERQUEUE) await RENDER();
+      if (tickCounter % Math.round(addOffset / speed) == 0) self.QUEUE.ADD();
+      if (tickCounter > 1000) tickCounter = 0;
+      tickCounter++;
+    }, speed);
   }
 }
 
