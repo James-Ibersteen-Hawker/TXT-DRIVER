@@ -7,6 +7,7 @@ class Game {
   RENDERTO;
   SPEED;
   KEYCONTROLS;
+  MOVESPEED;
   constructor(
     MAXPOINTS,
     LEVEL,
@@ -14,12 +15,14 @@ class Game {
     GAMEWIDTH,
     RENDERTO,
     SPEED,
-    KEYCONTROLS
+    KEYCONTROLS,
+    MOVESPEED
   ) {
     const self = this;
     (this.MAXPOINTS = MAXPOINTS),
       (this.LEVEL = LEVEL),
       (this.LANES = LANES),
+      (this.MOVESPEED = MOVESPEED),
       (this.GAMEWIDTH = GAMEWIDTH),
       (this.RENDERTO = RENDERTO),
       (this.QUEUE = (() => {
@@ -27,17 +30,32 @@ class Game {
         src.RUN = function (loc) {
           this.PROPSORT("z");
           this.forEach((e) => e.RENDER(loc));
+          this.forEach((e) => {
+            if (e != self.USER) e.MOVE(self.MOVESPEED);
+          });
         };
         src.ADD = function () {
           const lane = Math.floor(Math.random() * self.ROAD.length);
           const vehicleArr = Object.entries(self.TMPLS).filter(
             ([k, v]) => k !== "SGMT" && k[0] !== "u"
           );
-          this.push(
-            new self.TMPLS[
+          const selected =
+            self.TMPLS[
               vehicleArr[Math.floor(Math.random() * vehicleArr.length)][0]
-            ](5, 8)
+            ];
+          let y = Math.round(Math.random() * self.ROAD.length + 1) - 1;
+          y = Math.min(
+            y,
+            self.ROAD.length - new selected(0, 0, 0).template.length
           );
+          y = Math.max(-1, y);
+          const sameLane = this.filter((e) => e.y === y);
+          let x = self.ROAD[0].length - 1;
+          if (sameLane.length > 0) {
+            sameLane.PROPSORT("x");
+            alert(sameLane);
+          }
+          this.push(new selected(x, y, self.ROAD));
         };
         src.SHIFT = function (dir) {
           this.forEach((e) => {
@@ -49,13 +67,10 @@ class Game {
       (this.RENDERQUEUE = false),
       (this.TMPLS = {}),
       (this.BASECLASS = class {
-        x;
-        y;
         target;
         constructor(x, y, target) {
-          (this.x = x),
-            (this.y = y),
-            (this.z = null),
+          (this._x = x), (this._y = y);
+          (this.z = null),
             (this.bounds = {
               TL: null,
               TR: null,
@@ -64,16 +79,53 @@ class Game {
             }),
             (this.target = target);
         }
+        set y(v) {
+          this._y = v;
+          this.RESET();
+        }
+        set x(v) {
+          this._x = v;
+          this.RESET();
+        }
+        get y() {
+          return this._y;
+        }
+        get fakeY() {
+          return this.y - Math.ceil(this.template.length / 2);
+        }
+        get x() {
+          return this._x;
+        }
+        SETUP() {
+          this.z = this.y;
+          this.y += self.BUILDINGS.ARR.length;
+          this.bounds.TL = [this.x, this.y];
+          this.bounds.TR = [this.x + this.template[0].length, this.y];
+          this.bounds.BL = [this.x, this.y + this.template.length];
+          this.bounds.BR = [
+            this.x + this.template[0].width,
+            this.y + this.template.length,
+          ];
+        }
+        RESET() {
+          this.z = this.y;
+          this.bounds.TL = [this.x, this.y];
+          this.bounds.TR = [this.x + this.template[0].length, this.y];
+          this.bounds.BL = [this.x, this.y + this.template.length];
+          this.bounds.BR = [
+            this.x + this.template[0].width,
+            this.y + this.template.length,
+          ];
+        }
         RENDER(loc) {
           this.template.OVER(loc, this.x, this.y);
         }
-        move() {}
-        checkLane() {}
-        collide() {}
       }),
       (this.SPEED = SPEED),
       (this.ROAD = null),
-      (this.BUILDINGS = null),
+      (this.BUILDINGS = {
+        ARR: [],
+      }),
       (this.ROADBASE = []),
       (this.LANELOOKUP = {
         sets: null,
@@ -143,16 +195,8 @@ class Game {
               this.template = Object.freeze(Array.from(v).DIV(2));
               this.SETUP();
             }
-            SETUP() {
-              this.z = self.LANELOOKUP.laneOf(this.y);
-              this.y += self.BUILDINGS.ARR.length;
-              this.bounds.TL = [this.x, this.y];
-              this.bounds.TR = [this.x + this.template[0].length, this.y];
-              this.bounds.BL = [this.x, this.y + this.template.length];
-              this.bounds.BR = [
-                this.x + this.template[0].width,
-                this.y + this.template.length,
-              ];
+            MOVE(dir) {
+              this.x += dir;
             }
           };
           if (i === 1) self.USER.push(k);
@@ -164,8 +208,10 @@ class Game {
     });
     window.addEventListener("keydown", (event) => {
       const k = event.key;
-      event.preventDefault();
-      if (self.KEYCONTROLS.includes(k) && !self.KEYS.has(k)) self.KEYS.add(k);
+      if (self.KEYCONTROLS.includes(k) && !self.KEYS.has(k)) {
+        event.preventDefault();
+        self.KEYS.add(k);
+      }
     });
     window.addEventListener("keyup", (event) => {
       const k = event.key;
@@ -373,17 +419,6 @@ class Game {
           );
           this.SETUP();
         }
-        SETUP() {
-          this.z = self.LANELOOKUP.laneOf(this.y);
-          this.y += self.BUILDINGS.ARR.length;
-          this.bounds.TL = [this.x, this.y];
-          this.bounds.TR = [this.x + this.template[0].length, this.y];
-          this.bounds.BL = [this.x, this.y + this.template.length];
-          this.bounds.BR = [
-            this.x + this.template[0].length,
-            this.y + this.template.length,
-          ];
-        }
       }
       self.USER = new USER(4, self.LANELOOKUP.inLane(1, "middle"), self.ROAD);
       self.QUEUE.push(self.USER);
@@ -393,9 +428,8 @@ class Game {
     let addOffset = 1300;
     const speed = self.SPEED * (1 / self.LEVEL);
     self.TICK = setInterval(async () => {
-      const dir = -2;
-      await self.BUILDINGS.CLOCK(dir, [3, 5], [2, 6]);
-      self.ROAD.SHIFT(dir);
+      await self.BUILDINGS.CLOCK(self.MOVESPEED, [3, 5], [2, 6]);
+      self.ROAD.SHIFT(self.MOVESPEED);
       if (self.KEYS.has(self.KEYCONTROLS[0])) self.USER.y--;
       if (self.KEYS.has(self.KEYCONTROLS[1])) self.USER.y++;
       if (self.RENDERQUEUE) await RENDER();
@@ -406,9 +440,15 @@ class Game {
   }
 }
 
-const myGame = new Game(1, 1, 3, 100, document.querySelector("#game"), 100, [
-  "ArrowUp",
-  "ArrowDown",
-]);
+const myGame = new Game(
+  1,
+  1,
+  3,
+  100,
+  document.querySelector("#game"),
+  100,
+  ["ArrowUp", "ArrowDown"],
+  -2
+);
 
 //good speed is 100
