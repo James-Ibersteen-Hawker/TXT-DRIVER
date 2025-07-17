@@ -168,6 +168,9 @@ class Game {
       (this.KEYCONTROLS = KEYCONTROLS),
       (this.KEYS = new Set()),
       (this.BUILDINGS = []),
+      (this.MINSPEED = 500),
+      (this.MAXSPEED = 1300),
+      (this.MAXLEVEL = null),
       (this.SCORE = {
         _time: 0,
         set time(arg) {
@@ -326,11 +329,9 @@ class Game {
         resolve();
       });
     }
+    self.MAXLEVEL = Object.keys(self.TMPLS).filter((v) => v[0] === "u").length;
     self.LANES = Math.max(3, self.LANES);
-    self.LEVEL = Math.min(
-      Object.keys(self.TMPLS).filter((v) => v[0] === "u").length,
-      self.LEVEL
-    );
+    self.LEVEL = Math.min(self.MAXLEVEL, self.LEVEL);
     //road
     {
       self.ROAD = new Array(seg.length * self.LANES).fill(null).map(() => {
@@ -500,7 +501,8 @@ class Game {
     }
     // tick and game run
     let tickCounter = 0;
-    let addOffset = 1000 * (1 / (1 + self.LEVEL));
+    const incr = Math.round((self.MAXSPEED - self.MINSPEED) / self.MAXLEVEL);
+    let addOffset = self.MINSPEED - incr * self.LEVEL;
     const speed = self.SPEED * (1 / self.LEVEL);
     self.TICK = setInterval(async () => {
       await self.BUILDINGS.CLOCK(self.MOVESPEED, [3, 5], [2, 6]);
@@ -509,7 +511,6 @@ class Game {
       if (self.KEYS.has(self.KEYCONTROLS[1])) self.USER.y++;
       if (self.RENDERQUEUE) await RENDER();
       if (tickCounter % Math.round(addOffset / speed) == 0) self.QUEUE.ADD();
-
       if (tickCounter > 1000) tickCounter = 0;
       tickCounter++;
     }, speed);
@@ -528,4 +529,4 @@ const myGame = new Game(
   3
 );
 
-//good speed is 100
+//good speed is 100 or 80
