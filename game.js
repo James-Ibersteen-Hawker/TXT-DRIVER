@@ -9,6 +9,8 @@ class Game {
   MOVESPEED;
   MAXSCORE;
   LIVES;
+  MAXSPEED;
+  MINSPEED;
   constructor(
     LEVEL,
     LANES,
@@ -18,7 +20,9 @@ class Game {
     KEYCONTROLS,
     MOVESPEED,
     MAXSCORE,
-    LIVES
+    LIVES,
+    MAXSPEED,
+    MINSPEED
   ) {
     const self = this;
     (this.LEVEL = LEVEL),
@@ -168,8 +172,8 @@ class Game {
       (this.KEYCONTROLS = KEYCONTROLS),
       (this.KEYS = new Set()),
       (this.BUILDINGS = []),
-      (this.MINSPEED = 500),
-      (this.MAXSPEED = 1300),
+      (this.MINSPEED = MINSPEED),
+      (this.MAXSPEED = MAXSPEED),
       (this.MAXLEVEL = null),
       (this.SCORE = {
         _time: 0,
@@ -526,7 +530,9 @@ const myGame = new Game(
   ["ArrowUp", "ArrowDown"],
   -1,
   100,
-  3
+  3,
+  500,
+  1300
 );
 
 //good speed is 100 or 80
