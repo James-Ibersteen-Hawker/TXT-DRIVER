@@ -73,16 +73,8 @@ class Game {
                   self.USER.template[0].length;
                 x = Math.max(x, self.ROAD[0].length - 1);
               }
-              this.ARR.push(
-                new selected(
-                  x,
-                  y,
-                  self.ROAD,
-                  // self.MOVESPEED + 1 * Math.sign(self.MOVESPEED)
-                  speed
-                )
-              );
-            } else this.push(b);
+              this.ARR.push(new selected(x, y, speed, false));
+            } else this.ARR.push(b);
           },
         };
         return src;
@@ -90,8 +82,8 @@ class Game {
       (this.RENDERQUEUE = false),
       (this.TMPLS = {}),
       (this.BASECLASS = class {
-        target;
         MOVESPEED;
+        USER;
         set y(v) {
           this._y = v;
           this.RESET();
@@ -102,7 +94,7 @@ class Game {
         get fakeY() {
           return this.y - Math.ceil(this.template.length / 2);
         }
-        constructor(x, y, target, MOVESPEED) {
+        constructor(x, y, MOVESPEED, USER) {
           (this._x = x), (this._y = y);
           (this.z = null),
             (this.bounds = {
@@ -111,8 +103,8 @@ class Game {
               BL: null,
               BR: null,
             }),
-            (this.target = target),
-            (this.MOVESPEED = MOVESPEED);
+            (this.MOVESPEED = MOVESPEED),
+            (this.USER = USER);
         }
         SETUP() {
           this.z = this.y;
@@ -225,8 +217,8 @@ class Game {
       if (i !== a.length - 1) {
         e.forEach(([k, v]) => {
           self.TMPLS[k] = class extends self.BASECLASS {
-            constructor(x, y, target, MOVESPEED) {
-              super(x, y, target, MOVESPEED);
+            constructor(x, y, MOVESPEED) {
+              super(x, y, MOVESPEED);
               this.template = Object.freeze(Array.from(v).DIV(2));
               this.SETUP();
             }
@@ -234,20 +226,36 @@ class Game {
               this.x += this.MOVESPEED;
             }
             DODGE() {
-              const sameLane = self.QUEUE.ARR.filter((e) => e.y == this.y);
+              let sameLane = self.QUEUE.ARR.filter(
+                (e) => e.y == this.y && e.USER !== true && e != this
+              );
               if (sameLane.length > 0) {
-                const last = sameLane.at(-1);
-                const fakeX =
-                  Math.sign(self.MOVESPEED) == 1
-                    ? this.x + this.template[0].length
-                    : this.x;
-                const lB = last.bounds;
-                let collideFlag = false;
-                if (fakeX <= lB.TR.x && fakeX >= lB.TL.x) {
-                  if (this.y == last.y) collideFlag = true;
-                }
-                if (collideFlag == true) {
-                  console.log("collide");
+                sameLane = sameLane.filter((e) => {
+                  if (self.MOVESPEED < 0) return e.x <= this.x;
+                  else return e.x >= this.x;
+                });
+                if (sameLane.length > 0) {
+                  sameLane.PROPSORT("x");
+                  const last = sameLane.at(-1);
+                  const lB = last.bounds;
+                  if (Math.abs(last.MOVESPEED) < Math.abs(this.MOVESPEED)) {
+                    const vDiff = this.MOVESPEED - last.MOVESPEED;
+                    if (vDiff % 1 != 0) console.log(vDiff);
+                    const fakeX =
+                      self.MOVESPEED < 0
+                        ? this.x
+                        : this.x + this.template[0].length;
+                    let xArr = new Array(Math.abs(vDiff))
+                      .fill(null)
+                      .map((_, i) => fakeX + i * Math.sign(this.MOVESPEED) + 1);
+                    const dist = Math.abs(last.x - fakeX);
+                    const dT = Math.abs(Math.ceil((dist / vDiff) * (2 / 3)));
+                    const step = Math.ceil(Math.abs(vDiff / dT));
+                    if (self.MOVESPEED < 0 && xArr.includes(lB.TR[0])) {
+                      if (isFinite(step))
+                        this.MOVESPEED -= step * Math.sign(this.MOVESPEED);
+                    }
+                  }
                 }
               }
             }
@@ -473,8 +481,8 @@ class Game {
     //user control
     {
       class USER extends self.BASECLASS {
-        constructor(x, y, target) {
-          super(x, y, target);
+        constructor(x, y, MOVESPEED, USER) {
+          super(x, y, MOVESPEED, USER);
           this.template = Object.freeze(
             new self.TMPLS[self.USER[self.LEVEL]](0, 0, 0, null).template
           );
@@ -487,12 +495,12 @@ class Game {
           return this._x;
         }
       }
-      self.USER = new USER(4, self.LANELOOKUP.inLane(1, "middle"), self.ROAD);
+      self.USER = new USER(4, self.LANELOOKUP.inLane(1, "middle"), 0, true);
       self.QUEUE.ARR.push(self.USER);
     }
     // tick and game run
     let tickCounter = 0;
-    let addOffset = 1000;
+    let addOffset = 1000 * (1 / (1 + self.LEVEL));
     const speed = self.SPEED * (1 / self.LEVEL);
     self.TICK = setInterval(async () => {
       await self.BUILDINGS.CLOCK(self.MOVESPEED, [3, 5], [2, 6]);
@@ -501,6 +509,7 @@ class Game {
       if (self.KEYS.has(self.KEYCONTROLS[1])) self.USER.y++;
       if (self.RENDERQUEUE) await RENDER();
       if (tickCounter % Math.round(addOffset / speed) == 0) self.QUEUE.ADD();
+
       if (tickCounter > 1000) tickCounter = 0;
       tickCounter++;
     }, speed);
@@ -510,12 +519,12 @@ class Game {
 const myGame = new Game(
   1,
   3,
-  100,
+  80,
   document.querySelector("#game"),
   80,
   ["ArrowUp", "ArrowDown"],
   -1,
-  300,
+  100,
   3
 );
 
