@@ -175,15 +175,89 @@ class Game {
       (this.MINSPEED = MINSPEED),
       (this.MAXSPEED = MAXSPEED),
       (this.MAXLEVEL = null),
+      (this.RENDERSPEED = 0),
       (this.SCORE = {
         _time: 0,
+        _points: 0,
+        _lives: LIVES,
+        max: MAXSCORE,
         set time(arg) {
           this._time = arg;
           this.points++;
         },
-        points: 0,
-        lives: LIVES,
-        max: MAXSCORE,
+        get time() {
+          return this._time;
+        },
+        set points(v) {
+          this._points = v;
+          console.log(this._points);
+          if (this.points == this.max) {
+            clearInterval(self.TICK);
+            function RENDER() {
+              return new Promise((resolve, reject) => {
+                console.log("here");
+                const tempROAD = Array.from(
+                  { length: self.ROAD.length },
+                  (_, i) => [...self.ROAD[i]]
+                );
+                const temp = [
+                  ...self.BUILDINGS.ARR,
+                  ...tempROAD,
+                  ...new Array(self.BUILDINGS.ARR.length - 3)
+                    .fill(null)
+                    .map(() => new Array(self.ROAD[0].length).fill("░")),
+                ];
+                self.QUEUE.RUN(temp);
+                temp.splice(0, 0, new Array(self.ROAD[0].length).fill("‾"));
+                temp.push(new Array(self.ROAD[0].length).fill("‾"));
+                const result = temp
+                  .map((row, i) => {
+                    if (i != temp.length - 1) return "|" + row.join("") + "|";
+                    else return " " + row.join("") + " ";
+                  })
+                  .join("<br>");
+                self.RENDERTO.innerHTML = result;
+                resolve();
+              });
+            }
+            const save = [...self.QUEUE.ARR];
+            self.QUEUE.ARR = [self.USER];
+            self.ROAD.slice(0, self.ROAD.length - 1).forEach((e, i) => {
+              self.QUEUE.ADD(
+                new self.TMPLS.truckDouble(
+                  self.ROAD[0].length,
+                  i,
+                  self.MOVESPEED + 1 * Math.sign(self.MOVESPEED)
+                )
+              );
+            });
+            self.TICK = setInterval(async () => {
+              let truckCount = 0;
+              let truckOverUSER = 0;
+              await RENDER();
+              self.QUEUE.ARR.forEach((e) => {
+                if (self.MOVESPEED < 0) {
+                  if (e.bounds.TR[0] < 0) truckCount++;
+                  if (e.x == self.USER.x && e != self.USER) truckOverUSER++;
+                }
+              });
+              if (truckOverUSER == self.QUEUE.ARR.length - 1) {
+                const index = self.QUEUE.ARR.indexOf(self.USER);
+                self.QUEUE.ARR.splice(index, 1);
+              }
+              if (truckCount == self.QUEUE.ARR.length) clearInterval(self.TICK);
+            }, self.RENDERSPEED);
+          }
+        },
+        get points() {
+          return this._points;
+        },
+        set lives(v) {
+          this._lives = v;
+        },
+        get lives() {
+          return this._lives;
+        },
       });
     this.SETUP(self);
   }
@@ -336,6 +410,7 @@ class Game {
     }
     self.LANES = Math.max(3, self.LANES);
     self.LEVEL = Math.min(self.MAXLEVEL, self.LEVEL);
+    self.RENDERSPEED = self.SPEED * (1 / self.LEVEL);
     //road
     {
       self.ROAD = new Array(seg.length * self.LANES).fill(null).map(() => {
@@ -505,33 +580,40 @@ class Game {
     }
     // tick and game run
     let tickCounter = 0;
+    let pointCounter = 0;
+    let everyPoint = 2;
     const incr = Math.round(
       (self.MAXSPEED - self.MINSPEED) / (self.MAXLEVEL - 1)
     );
     let addOffset = self.MINSPEED - incr * (self.LEVEL - 1);
-    const speed = self.SPEED * (1 / self.LEVEL);
     self.TICK = setInterval(async () => {
       await self.BUILDINGS.CLOCK(self.MOVESPEED, [3, 5], [2, 6]);
       self.ROAD.SHIFT(self.MOVESPEED);
       if (self.KEYS.has(self.KEYCONTROLS[0])) self.USER.y--;
       if (self.KEYS.has(self.KEYCONTROLS[1])) self.USER.y++;
       if (self.RENDERQUEUE) await RENDER();
-      if (tickCounter % Math.round(addOffset / speed) == 0) self.QUEUE.ADD();
+      if (tickCounter % Math.round(addOffset / self.RENDERSPEED) == 0) {
+        self.QUEUE.ADD();
+      }
+      if (tickCounter % Math.round(1000 / self.RENDERSPEED) == 0) {
+        if (pointCounter % everyPoint == 0) self.SCORE.time++;
+        pointCounter++;
+      }
       if (tickCounter > 1000) tickCounter = 0;
       tickCounter++;
-    }, speed);
+    }, self.RENDERSPEED);
   }
 }
 
 const myGame = new Game(
   1,
   3,
-  120,
+  70,
   document.querySelector("#game"),
   80,
   ["ArrowUp", "ArrowDown"],
   -1,
-  100,
+  5,
   3,
   400,
   800
