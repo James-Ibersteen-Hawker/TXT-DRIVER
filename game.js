@@ -293,6 +293,7 @@ class Game {
       const k = event.key;
       if (self.KEYS.has(k)) self.KEYS.delete(k);
     });
+    self.MAXLEVEL = Object.keys(self.TMPLS).filter((v) => v[0] === "u").length;
     self.PLAY(self);
   }
   async PLAY(self) {
@@ -333,7 +334,6 @@ class Game {
         resolve();
       });
     }
-    self.MAXLEVEL = Object.keys(self.TMPLS).filter((v) => v[0] === "u").length;
     self.LANES = Math.max(3, self.LANES);
     self.LEVEL = Math.min(self.MAXLEVEL, self.LEVEL);
     //road
@@ -505,8 +505,10 @@ class Game {
     }
     // tick and game run
     let tickCounter = 0;
-    const incr = Math.round((self.MAXSPEED - self.MINSPEED) / self.MAXLEVEL);
-    let addOffset = self.MINSPEED - incr * self.LEVEL;
+    const incr = Math.round(
+      (self.MAXSPEED - self.MINSPEED) / (self.MAXLEVEL - 1)
+    );
+    let addOffset = self.MINSPEED - incr * (self.LEVEL - 1);
     const speed = self.SPEED * (1 / self.LEVEL);
     self.TICK = setInterval(async () => {
       await self.BUILDINGS.CLOCK(self.MOVESPEED, [3, 5], [2, 6]);
@@ -524,15 +526,15 @@ class Game {
 const myGame = new Game(
   1,
   3,
-  80,
+  120,
   document.querySelector("#game"),
   80,
   ["ArrowUp", "ArrowDown"],
   -1,
   100,
   3,
-  500,
-  1300
+  400,
+  800
 );
 
 //good speed is 100 or 80
