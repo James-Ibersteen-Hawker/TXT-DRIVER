@@ -43,6 +43,7 @@ class Game {
             this.ARR.forEach((e) => {
               if (e != self.USER) e.MOVE();
             });
+            self.USER.collide();
           },
           ADD(b = false) {
             if (!b) {
@@ -342,16 +343,18 @@ class Game {
                       self.MOVESPEED < 0
                         ? this.x
                         : this.x + this.template[0].length;
-                    let xArr = new Array(Math.abs(vDiff))
-                      .fill(null)
-                      .map((_, i) => fakeX + i * Math.sign(this.MOVESPEED) + 1);
                     const dist = Math.abs(last.x - fakeX);
                     const dT = Math.abs(Math.ceil((dist / vDiff) * (2 / 3)));
                     const step = Math.ceil(Math.abs(vDiff / dT));
-                    if (self.MOVESPEED < 0 && xArr.includes(lB.TR[0])) {
-                      if (isFinite(step))
-                        this.MOVESPEED -= step * Math.sign(this.MOVESPEED);
-                    }
+                    const xs = [lB.TR[0], lB.TL[0]];
+                    if (
+                      xs.includes(this.x + 1 * Math.sign(self.MOVESPEED)) &&
+                      this.MOVESPEED != last.MOVESPEED
+                    )
+                      this.MOVESPEED = last.MOVESPEED;
+
+                    if (isFinite(step))
+                      this.MOVESPEED -= step * Math.sign(this.MOVESPEED);
                   }
                 }
               }
@@ -363,6 +366,14 @@ class Game {
             }
             get x() {
               return this._x;
+            }
+            set y(v) {
+              this._y = v;
+              this.DODGE();
+              this.RESET();
+            }
+            get y() {
+              return this._y;
             }
           };
           if (i === 1) self.USERPROPS.push(k);
@@ -586,9 +597,27 @@ class Game {
         }
         set x(v) {
           this._x = v;
+          this.RESET();
         }
         get x() {
           return this._x;
+        }
+        set y(v) {
+          this._y = v;
+          this.RESET();
+        }
+        get y() {
+          return this._y;
+        }
+        collide() {
+          let sameLane = self.QUEUE.ARR.filter(
+            (e) => e.y === this.y && e.USER != true
+          );
+          if (sameLane.length > 0) {
+            sameLane.PROPSORT("x");
+            const first = sameLane[0];
+            const xs = [first.bounds.TR[0], first.bounds.TL[0]];
+          }
         }
       }
       self.USER = new USER(4, self.LANELOOKUP.inLane(1, "middle"), 0, true);
@@ -608,12 +637,10 @@ class Game {
       if (self.KEYS.has(self.KEYCONTROLS[0])) self.USER.y--;
       if (self.KEYS.has(self.KEYCONTROLS[1])) self.USER.y++;
       if (self.RENDERQUEUE) await RENDER();
-      if (tickCounter % Math.round(addOffset / self.RENDERSPEED) == 0) {
+      if (tickCounter % Math.round(addOffset / self.RENDERSPEED) == 0)
         self.QUEUE.ADD();
-      }
       if (tickCounter % Math.round(1000 / self.RENDERSPEED) == 0) {
         if (pointCounter % everyPoint == 0) self.SCORE.time++;
-        if (pointCounter == 3) self.SCORE.lives--;
         pointCounter++;
       }
       if (tickCounter > 1000) tickCounter = 0;
@@ -625,8 +652,11 @@ class Game {
       let i = 0;
       let shift = 0;
       self.SCORE.LOC.textContent = "Game Over";
+      let tempLength;
+      let outTemp;
       self.TICK = new Promise((resolve, reject) => {
-        setInterval(() => {
+        const intervalID = setInterval(() => {
+          console.log("tick");
           let temp = [
             ...self.BUILDINGS.ARR,
             ...self.ROAD,
@@ -648,12 +678,14 @@ class Game {
               arr.OVER(temp, 0, q);
             }
             if (i >= temp.length * 2) {
-              clearInterval(self.TICK);
+              clearInterval(intervalID);
+              outTemp = temp;
               resolve();
             }
           }
           temp.splice(0, 0, new Array(self.ROAD[0].length).fill("‾"));
           temp.push(new Array(self.ROAD[0].length).fill("‾"));
+          tempLength = temp.length;
           const result = temp
             .map((row, i) => {
               if (i != temp.length - 1) return `|${row.join("")}|`;
@@ -666,7 +698,21 @@ class Game {
         }, self.RENDERSPEED);
       });
       await self.TICK;
-      const center = 0;
+      const centerY = Math.floor((tempLength - 1) / 2);
+      const centerX = Math.floor(self.ROAD[0].length / 2);
+      const endArr = [
+        `Your Score: ${self.SCORE.points}  |  Top Score: ${self.SCORE.max}`.split(
+          ""
+        ),
+      ];
+      endArr.OVER(outTemp, centerX - Math.floor(endArr[0].length / 2), centerY);
+      const result = outTemp
+        .map((row, i) => {
+          if (i != outTemp.length - 1) return `|${row.join("")}|`;
+          else return ` ${row.join("")} `;
+        })
+        .join("<br>");
+      self.RENDERTO.innerHTML = result;
     }, self.RENDERSPEED * 2);
   }
 }
