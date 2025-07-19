@@ -195,7 +195,7 @@ class Game {
         },
         set points(v) {
           this._points = v;
-          self.SCORE.LOC.textContent = this.points;
+          self.SCORE.LOC.textContent = `Points: ${this.points}  |  Lives: ${this.lives}`;
           //game end
           if (this.points == this.max) {
             clearInterval(self.TICK);
@@ -263,18 +263,13 @@ class Game {
           const inself = this;
           const hold = inself.lives;
           this._lives = v;
-          console.log(this.lives)
-          //life change system
-          if (hold > inself.lives) {
-            clearInterval(self.TICK);
-            inself.points = 0;
-            self.SCORE.LOC.textContent = "CRASH!";
-            setTimeout(() => {
-              self.PLAY(self);
-            }, 1000);
-          }
-          //end of game
-          if (this.lives == 0) self.GAMEEND();
+          let callback;
+          if (hold > inself.lives && inself.lives > 0) callback = self.PLAY;
+          else if (this.lives == 0) callback = self.GAMEEND;
+          clearInterval(self.TICK);
+          inself.points = 0;
+          self.SCORE.LOC.textContent = "CRASH!";
+          setTimeout(() => callback(self), 1000);
         },
         get lives() {
           return this._lives;
@@ -390,6 +385,8 @@ class Game {
     });
     self.MAXLEVEL = Object.keys(self.TMPLS).filter((v) => v[0] === "u").length;
     self.RENDERTO.insertAdjacentElement("beforebegin", self.SCORE.LOC);
+    self.LEVEL = Math.min(self.MAXLEVEL, self.LEVEL);
+    self.RENDERSPEED = self.SPEED * (1 / self.LEVEL);
     self.PLAY(self);
   }
   async PLAY(self) {
@@ -432,8 +429,6 @@ class Game {
       });
     }
     self.LANES = Math.max(3, self.LANES);
-    self.LEVEL = Math.min(self.MAXLEVEL, self.LEVEL);
-    self.RENDERSPEED = self.SPEED * (1 / self.LEVEL);
     //road
     {
       self.ROAD = new Array(seg.length * self.LANES).fill(null).map(() => {
@@ -629,7 +624,7 @@ class Game {
     setTimeout(async () => {
       let i = 0;
       let shift = 0;
-      self.SCORE.LOC.textContent = "";
+      self.SCORE.LOC.textContent = "Game Over";
       self.TICK = new Promise((resolve, reject) => {
         setInterval(() => {
           let temp = [
@@ -671,6 +666,7 @@ class Game {
         }, self.RENDERSPEED);
       });
       await self.TICK;
+      const center = 0;
     }, self.RENDERSPEED * 2);
   }
 }
