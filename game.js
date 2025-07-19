@@ -181,6 +181,11 @@ class Game {
         _points: 0,
         _lives: LIVES,
         max: MAXSCORE,
+        LOC: (() => {
+          let e = document.createElement("div");
+          e.id = "_game_score";
+          return e;
+        })(),
         set time(arg) {
           this._time = arg;
           this.points++;
@@ -190,7 +195,8 @@ class Game {
         },
         set points(v) {
           this._points = v;
-          console.log(this._points);
+          self.SCORE.LOC.textContent = this.points;
+          //game end
           if (this.points == this.max) {
             clearInterval(self.TICK);
             function RENDER() {
@@ -220,7 +226,6 @@ class Game {
                 resolve();
               });
             }
-            const save = [...self.QUEUE.ARR];
             self.QUEUE.ARR = [self.USER];
             self.ROAD.slice(0, self.ROAD.length - 1).forEach((e, i) => {
               self.QUEUE.ADD(
@@ -245,7 +250,10 @@ class Game {
                 const index = self.QUEUE.ARR.indexOf(self.USER);
                 self.QUEUE.ARR.splice(index, 1);
               }
-              if (truckCount == self.QUEUE.ARR.length) clearInterval(self.TICK);
+              if (truckCount == self.QUEUE.ARR.length) {
+                clearInterval(self.TICK);
+                self.GAMEEND(self);
+              }
             }, self.RENDERSPEED);
           }
         },
@@ -368,6 +376,7 @@ class Game {
       if (self.KEYS.has(k)) self.KEYS.delete(k);
     });
     self.MAXLEVEL = Object.keys(self.TMPLS).filter((v) => v[0] === "u").length;
+    self.RENDERTO.insertAdjacentElement("beforebegin", self.SCORE.LOC);
     self.PLAY(self);
   }
   async PLAY(self) {
@@ -603,6 +612,55 @@ class Game {
       tickCounter++;
     }, self.RENDERSPEED);
   }
+  GAMEEND(self) {
+    setTimeout(async () => {
+      let i = 0;
+      let shift = 0;
+      self.SCORE.LOC.textContent = ""
+      self.TICK = new Promise((resolve, reject) => {
+        setInterval(() => {
+          let temp = [
+            ...self.BUILDINGS.ARR,
+            ...self.ROAD,
+            ...new Array(self.BUILDINGS.ARR.length - 3)
+              .fill(null)
+              .map(() => new Array(self.ROAD[0].length).fill("░")),
+          ];
+          if (i <= temp.length) {
+            for (let q = 0; q < i; q++) {
+              let arr = new Array(1).fill(new Array(self.GAMEWIDTH).fill("^"));
+              arr.OVER(temp, 0, q);
+            }
+          } else if (i > temp.length) {
+            temp = new Array(temp.length)
+              .fill(null)
+              .map(() => new Array(self.ROAD[0].length).fill("^"));
+            for (let q = 0; q < i - temp.length; q++) {
+              let arr = new Array(1).fill(new Array(self.GAMEWIDTH).fill(" "));
+              arr.OVER(temp, 0, q);
+            }
+            if (i >= temp.length * 2) {
+              clearInterval(self.TICK);
+              resolve();
+            }
+          }
+          temp.splice(0, 0, new Array(self.ROAD[0].length).fill("‾"));
+          temp.push(new Array(self.ROAD[0].length).fill("‾"));
+          const result = temp
+            .map((row, i) => {
+              if (i != temp.length - 1) return `|${row.join("")}|`;
+              else return ` ${row.join("")} `;
+            })
+            .join("<br>");
+          self.RENDERTO.innerHTML = result;
+          i++;
+          shift++;
+        }, self.RENDERSPEED);
+      });
+      await self.TICK;
+      alert("done")
+    }, self.RENDERSPEED * 2);
+  }
 }
 
 const myGame = new Game(
@@ -613,7 +671,7 @@ const myGame = new Game(
   80,
   ["ArrowUp", "ArrowDown"],
   -1,
-  5,
+  2,
   3,
   400,
   800
