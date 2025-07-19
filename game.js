@@ -147,7 +147,6 @@ class Game {
       (this.BUILDINGS = {
         ARR: [],
       }),
-      (this.ROADBASE = []),
       (this.LANELOOKUP = {
         sets: null,
         list: null,
@@ -168,7 +167,7 @@ class Game {
           }
         },
       }),
-      (this.USER = []),
+      (this.USER = undefined),
       (this.KEYCONTROLS = KEYCONTROLS),
       (this.KEYS = new Set()),
       (this.BUILDINGS = []),
@@ -176,6 +175,7 @@ class Game {
       (this.MAXSPEED = MAXSPEED),
       (this.MAXLEVEL = null),
       (this.RENDERSPEED = 0),
+      (this.USERPROPS = []),
       (this.SCORE = {
         _time: 0,
         _points: 0,
@@ -201,7 +201,6 @@ class Game {
             clearInterval(self.TICK);
             function RENDER() {
               return new Promise((resolve, reject) => {
-                console.log("here");
                 const tempROAD = Array.from(
                   { length: self.ROAD.length },
                   (_, i) => [...self.ROAD[i]]
@@ -261,7 +260,21 @@ class Game {
           return this._points;
         },
         set lives(v) {
+          const inself = this;
+          const hold = inself.lives;
           this._lives = v;
+          console.log(this.lives)
+          //life change system
+          if (hold > inself.lives) {
+            clearInterval(self.TICK);
+            inself.points = 0;
+            self.SCORE.LOC.textContent = "CRASH!";
+            setTimeout(() => {
+              self.PLAY(self);
+            }, 1000);
+          }
+          //end of game
+          if (this.lives == 0) self.GAMEEND();
         },
         get lives() {
           return this._lives;
@@ -329,7 +342,7 @@ class Game {
                   const lB = last.bounds;
                   if (Math.abs(last.MOVESPEED) < Math.abs(this.MOVESPEED)) {
                     const vDiff = this.MOVESPEED - last.MOVESPEED;
-                    if (vDiff % 1 != 0) console.log(vDiff);
+                    if (vDiff % 1 != 0) console.error(vDiff);
                     const fakeX =
                       self.MOVESPEED < 0
                         ? this.x
@@ -357,7 +370,7 @@ class Game {
               return this._x;
             }
           };
-          if (i === 1) self.USER.push(k);
+          if (i === 1) self.USERPROPS.push(k);
         });
       } else {
         const [name, val] = templates[2]?.[0];
@@ -381,6 +394,7 @@ class Game {
   }
   async PLAY(self) {
     const seg = self.TMPLS.SGMT;
+    self.QUEUE.ARR = [];
     function random(min, max) {
       return Math.floor(Math.random() * (max - min + 1)) + min;
     }
@@ -440,7 +454,6 @@ class Game {
             offset += seg[0].length;
           }
         }
-        self.ROADBASE.push(Object.freeze([...e]));
         return e;
       });
       self.ROAD.SHIFT = function (dir) {
@@ -457,7 +470,6 @@ class Game {
           }
         });
       };
-      Object.freeze(self.ROADBASE);
     }
     //building generation
     {
@@ -573,7 +585,7 @@ class Game {
         constructor(x, y, MOVESPEED, USER) {
           super(x, y, MOVESPEED, USER);
           this.template = Object.freeze(
-            new self.TMPLS[self.USER[self.LEVEL]](0, 0, 0, null).template
+            new self.TMPLS[self.USERPROPS[self.LEVEL]](0, 0, 0, null).template
           );
           this.SETUP();
         }
@@ -606,6 +618,7 @@ class Game {
       }
       if (tickCounter % Math.round(1000 / self.RENDERSPEED) == 0) {
         if (pointCounter % everyPoint == 0) self.SCORE.time++;
+        if (pointCounter == 3) self.SCORE.lives--;
         pointCounter++;
       }
       if (tickCounter > 1000) tickCounter = 0;
@@ -616,7 +629,7 @@ class Game {
     setTimeout(async () => {
       let i = 0;
       let shift = 0;
-      self.SCORE.LOC.textContent = ""
+      self.SCORE.LOC.textContent = "";
       self.TICK = new Promise((resolve, reject) => {
         setInterval(() => {
           let temp = [
@@ -658,7 +671,6 @@ class Game {
         }, self.RENDERSPEED);
       });
       await self.TICK;
-      alert("done")
     }, self.RENDERSPEED * 2);
   }
 }
@@ -671,7 +683,7 @@ const myGame = new Game(
   80,
   ["ArrowUp", "ArrowDown"],
   -1,
-  2,
+  10,
   3,
   400,
   800
