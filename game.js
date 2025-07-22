@@ -44,7 +44,6 @@ class Game {
           this.ARR.forEach((e) => {
             if (e !== self.USER) e.MOVE();
           });
-          self.USER.collide();
         },
         ADD(b = false) {
           if (!b) {
@@ -77,6 +76,23 @@ class Game {
         },
         INLANE(y) {
           return this.ARR.filter((e) => e.y === y);
+        },
+        CHECKLOCK(y) {
+          const indexes = [];
+          const inself = this;
+          if (y - 1 - self.BUILDINGS.length === 0) indexes.push(...[y, y + 1]);
+          else if (y + 1 === self.ROAD.length + self.BUILDINGS.length)
+            indexes.push(...[y - 1, y]);
+          else indexes.push(...[y - 1, y, y + 1]);
+          indexes.forEach((e) => {
+            const lane = inself
+              .INLANE(y)
+              .filter(
+                (a) =>
+                  a.USER !== true &&
+                  (self.MOVESPEED < 0 ? a.x > self.USER.x : a.x < self.USER.x)
+              );
+          });
         },
       }),
       (this.RENDERQUEUE = false),
@@ -239,10 +255,11 @@ class Game {
           const hold = inself.lives;
           inself._lives = v;
           let callback;
-          if (hold > inself.lives && inself.lives > 0) callback = self.PLAY;
-          else if (inself.lives === 0) callback = self.GAMEEND;
+          if (hold > inself.lives && inself.lives > 0) {
+            callback = self.PLAY;
+            inself.points = 0;
+          } else if (inself.lives === 0) callback = self.GAMEEND;
           clearInterval(self.TICK);
-          inself.points = 0;
           self.SCORE.LOC.textContent = "CRASH!";
           setTimeout(() => callback(self), 1000);
         },
@@ -604,27 +621,35 @@ class Game {
     let pointCounter = 0;
     const everyPoint = 2;
     const incr = Math.round(
-      (self.MAXSPEED - self.MINSPEED) / (self.MAXLEVEL - 1)
+      (self.MINSPEED - self.MAXSPEED) / (self.MAXLEVEL - 1)
     );
-    const addOffset = self.MINSPEED - incr * (self.LEVEL - 1);
+    const addOffset =
+      self.MINSPEED - incr * (self.LEVEL - 1) - self.ROAD.length * 10;
+    let tickFlag = true;
     self.TICK = setInterval(async () => {
-      await self.BUILDINGS.CLOCK(self.MOVESPEED, [3, 5], [2, 6]);
-      self.ROAD.SHIFT(self.MOVESPEED);
-      if (self.KEYS.has(self.KEYCONTROLS[0])) self.USER.y--;
-      if (self.KEYS.has(self.KEYCONTROLS[1])) self.USER.y++;
-      if (self.RENDERQUEUE) await RENDER();
-      if (tickCounter % Math.round(addOffset / self.RENDERSPEED) === 0)
-        self.QUEUE.ADD();
-      if (tickCounter % Math.round(1000 / self.RENDERSPEED) === 0) {
-        if (pointCounter % everyPoint === 0) self.SCORE.time++;
-        pointCounter++;
+      if (tickFlag === true) {
+        tickFlag = false;
+        await self.BUILDINGS.CLOCK(self.MOVESPEED, [3, 5], [2, 6]);
+        self.ROAD.SHIFT(self.MOVESPEED);
+        if (self.KEYS.has(self.KEYCONTROLS[0])) self.USER.y--;
+        if (self.KEYS.has(self.KEYCONTROLS[1])) self.USER.y++;
+        if (self.RENDERQUEUE) await RENDER();
+        if (tickCounter % Math.round(addOffset / self.RENDERSPEED) === 0)
+          self.QUEUE.ADD();
+        if (tickCounter % Math.round(1000 / self.RENDERSPEED) === 0) {
+          if (pointCounter % everyPoint === 0) self.SCORE.time++;
+          pointCounter++;
+        }
+        if (tickCounter > 1000) tickCounter = 0;
+        if (pointCounter > 100) pointCounter = 0;
+        self.USER.collide();
+        tickCounter++;
+        tickFlag = true;
       }
-      if (tickCounter > 1000) tickCounter = 0;
-      if (pointCounter > 100) pointCounter = 0;
-      tickCounter++;
     }, self.RENDERSPEED);
   }
   GAMEEND(self) {
+    clearInterval(self.TICK);
     setTimeout(async () => {
       let i = 0;
       let shift = 0;
@@ -681,7 +706,7 @@ class Game {
         Math.floor(self.ROAD[0].length / 2) - Math.floor(endArr[0].length / 2);
       endArr.OVER(outTemp, centerX, centerY);
       self.RENDERTO.innerHTML = outTemp.DOCPRINT();
-    }, self.RENDERSPEED * 2);
+    }, self.RENDERSPEED);
   }
 }
 
@@ -693,9 +718,9 @@ const myGame = new Game(
   80,
   ["ArrowUp", "ArrowDown"],
   -1,
-  100,
+  20,
   3,
-  550,
+  400,
   800
 );
 
