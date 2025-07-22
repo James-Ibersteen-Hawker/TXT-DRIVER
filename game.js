@@ -96,10 +96,9 @@ class Game {
             (this.MOVESPEED = MOVESPEED),
             (this.USER = USER);
         }
-        SETUP() {
-          const inself = this;
-          inself.z = inself.y;
-          inself.y += self.BUILDINGS.ARR.length;
+        SETUP(inself, reset = false) {
+          inself.z = inself._y;
+          if (!reset) inself.y += self.BUILDINGS.ARR.length;
           inself.bounds.TL = { x: inself.x, y: inself.y };
           inself.bounds.TR = {
             x: inself.x + inself.template[0].length,
@@ -114,28 +113,15 @@ class Game {
             y: inself.y + inself.template.length,
           };
         }
-        RESET() {
-          this.z = this.y;
-          this.bounds.TL = [this.x, this.y];
-          this.bounds.TR = [this.x + this.template[0].length, this.y];
-          this.bounds.BL = [this.x, this.y + this.template.length];
-          this.bounds.BR = [
-            this.x + this.template[0].width,
-            this.y + this.template.length,
-          ];
-        }
         RENDER(loc) {
           return this.template.OVER(loc, this.x, this.y);
         }
         set y(v) {
           this._y = v;
-          this.RESET();
+          this.SETUP(this, true);
         }
         get y() {
           return this._y;
-        }
-        get fakeY() {
-          return this.y - Math.ceil(this.template.length / 2);
         }
       }),
       (this.SPEED = SPEED),
@@ -230,7 +216,7 @@ class Game {
               await RENDER();
               self.QUEUE.ARR.forEach((e) => {
                 if (self.MOVESPEED < 0) {
-                  if (e.bounds.TR[0] < 0) truckCount++;
+                  if (e.bounds.TR.x < 0) truckCount++;
                   if (e.x === self.USER.x && e !== self.USER) truckOverUSER++;
                 }
               });
@@ -314,7 +300,7 @@ class Game {
             constructor(x, y, MOVESPEED) {
               super(x, y, MOVESPEED);
               this.template = Object.freeze(Array.from(v).DIV(2));
-              this.SETUP();
+              this.SETUP(this, false);
             }
             MOVE() {
               this.x += this.MOVESPEED;
@@ -343,7 +329,7 @@ class Game {
                     const dist = Math.abs(last.x - fakeX);
                     const dT = Math.abs(Math.ceil((dist / vDiff) * (2 / 3)));
                     const step = Math.ceil(Math.abs(vDiff / dT));
-                    const xs = [lB.TR[0], lB.TL[0]];
+                    const xs = [lB.TR.x, lB.TL.x];
                     if (xs.includes(this.x + m.sign()) && tM !== lM) tM = lM;
                     if (isFinite(step)) tM -= step * tM.sign();
                   }
@@ -353,7 +339,7 @@ class Game {
             set x(v) {
               this._x = v;
               this.DODGE();
-              this.RESET();
+              this.SETUP(this, true);
             }
             get x() {
               return this._x;
@@ -361,7 +347,7 @@ class Game {
             set y(v) {
               this._y = v;
               this.DODGE();
-              this.RESET();
+              this.SETUP(this, true);
             }
             get y() {
               return this._y;
@@ -575,18 +561,18 @@ class Game {
           this.template = Object.freeze(
             new self.TMPLS[self.USERPROPS[self.LEVEL]](0, 0, 0, null).template
           );
-          this.SETUP();
+          this.SETUP(this, false);
         }
         set x(v) {
           this._x = v;
-          this.RESET();
+          this.SETUP(this, true);
         }
         get x() {
           return this._x;
         }
         set y(v) {
           this._y = v;
-          this.RESET();
+          this.SETUP(this, true);
         }
         get y() {
           return this._y;
@@ -598,7 +584,7 @@ class Game {
           if (sameLane.length > 0) {
             sameLane.PROPSORT("x");
             const first = sameLane[0];
-            const xs = [first.bounds.TR[0], first.bounds.TL[0]];
+            const xs = [first.bounds.TR.x, first.bounds.TL.x];
           }
         }
       }
