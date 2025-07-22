@@ -10,8 +10,8 @@ motorcycle& /__ O––/O%
 bus&/‾|‾‾‾‾‾‾|‾\―O――――――――O―%
 lorry&_/‾|‾‾‾|―O―――OO-%
 ~user~
-ucar&__/#|#\__―O―――――O―%
 ulorry&|‾‾‾|#\_-OO―――O―%
+ucar&__/#|#\__―O―――――O―%
 utruck&|‾‾‾‾‾‾‾|#\_OO―――――OO―O―%
 ~road~
 SGMT&‾‾‾‾‾‾‾‾-   -   ________%

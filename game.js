@@ -109,7 +109,7 @@ class Game {
             y: inself.y + inself.template.length,
           };
           inself.bounds.BR = {
-            x: inself.x + inself.template[0].width,
+            x: inself.x + inself.template[0].length,
             y: inself.y + inself.template.length,
           };
         }
@@ -559,7 +559,8 @@ class Game {
         constructor(x, y, MOVESPEED, USER) {
           super(x, y, MOVESPEED, USER);
           this.template = Object.freeze(
-            new self.TMPLS[self.USERPROPS[self.LEVEL]](0, 0, 0, null).template
+            new self.TMPLS[self.USERPROPS[self.LEVEL - 1]](0, 0, 0, null)
+              .template
           );
           this.SETUP(this, false);
         }
@@ -578,13 +579,20 @@ class Game {
           return this._y;
         }
         collide() {
-          let sameLane = self.QUEUE.ARR.filter(
-            (e) => e.y === this.y && e.USER !== true
+          const sameLane = self.QUEUE.INLANE(this.y).filter(
+            (e) => e.USER !== true
           );
           if (sameLane.length > 0) {
             sameLane.PROPSORT("x");
             const first = sameLane[0];
-            const xs = [first.bounds.TR.x, first.bounds.TL.x];
+            const fB = { BR: first.bounds.BR, BL: first.bounds.BL };
+            const tB = { BR: this.bounds.BR, BL: this.bounds.BL };
+            for (let p in fB) {
+              const b = fB[p];
+              if (b.y == tB.BR.y) {
+                if (b.x <= tB.BR.x && b.x >= tB.BL.x) self.SCORE.lives--;
+              }
+            }
           }
         }
       }
@@ -678,16 +686,16 @@ class Game {
 }
 
 const myGame = new Game(
-  1,
+  3,
   3,
   70,
   document.querySelector("#game"),
   80,
   ["ArrowUp", "ArrowDown"],
   -1,
-  10,
+  100,
   3,
-  400,
+  550,
   800
 );
 
