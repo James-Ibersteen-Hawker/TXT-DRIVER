@@ -55,7 +55,7 @@ class Game {
             const selected =
               self.TMPLS[vArr[self.RANDOM(0, vArr.length - 1)][0]];
             let x = r[0].length - 1;
-            let y = self.RANDOM(0, r.length - 1);
+            let y = self.RANDOM(-1, r.length - 1);
             y = Math.max(
               -1,
               Math.min(y, r.length - new selected().template.length)
@@ -203,7 +203,7 @@ class Game {
                   (_, i) => [...self.ROAD[i]]
                 );
                 const temp = [
-                  ...self.BUILDINGS.ARR,
+                  ...self.BUILDINGS.ARR.map((e) => [...e]),
                   ...tempROAD,
                   ...new Array(self.BUILDINGS.ARR.length - 3)
                     .fill(null)
@@ -217,11 +217,11 @@ class Game {
               });
             }
             self.QUEUE.ARR = [self.USER];
-            self.ROAD.slice(0, self.ROAD.length - 1).forEach((_, i) => {
+            self.ROAD.forEach((_, i) => {
               self.QUEUE.ADD(
                 new self.TMPLS.truckDouble(
                   self.ROAD[0].length,
-                  i,
+                  i - 1,
                   self.MOVESPEED + self.MOVESPEED.sign()
                 )
               );
@@ -403,7 +403,7 @@ class Game {
           ...self.ROAD[i],
         ]);
         const temp = [
-          ...self.BUILDINGS.ARR,
+          ...self.BUILDINGS.ARR.map((e) => [...e]),
           ...tempROAD,
           ...new Array(self.BUILDINGS.ARR.length - 3)
             .fill(null)
@@ -706,12 +706,19 @@ class Game {
         Math.floor(self.ROAD[0].length / 2) - Math.floor(endArr[0].length / 2);
       endArr.OVER(outTemp, centerX, centerY);
       self.RENDERTO.innerHTML = outTemp.DOCPRINT();
-    }, self.RENDERSPEED);
+      function enterRESET(e) {
+        if (e.key === "Enter") {
+          alert("reset");
+          window.removeEventListener("keydown", enterRESET);
+        }
+      }
+      window.addEventListener("keydown", enterRESET);
+    }, self.SPEED);
   }
 }
 
 const myGame = new Game(
-  3,
+  1,
   3,
   70,
   document.querySelector("#game"),
