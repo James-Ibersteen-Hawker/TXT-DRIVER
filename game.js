@@ -10,6 +10,7 @@ class Game {
   LIVES;
   MAXSPEED;
   MINSPEED;
+  SPEEDKEY;
   constructor(
     LEVEL,
     LANES,
@@ -21,7 +22,8 @@ class Game {
     MAXSCORE,
     LIVES,
     MAXSPEED,
-    MINSPEED
+    MINSPEED,
+    SPEEDKEY
   ) {
     const self = this;
     (this.LEVEL = LEVEL),
@@ -174,99 +176,100 @@ class Game {
       (this.MAXLEVEL = null),
       (this.RENDERSPEED = 0),
       (this.USERPROPS = []),
-      (this.SCORE = {
-        _time: 0,
-        _points: 0,
-        _lives: LIVES,
-        max: MAXSCORE,
-        LOC: (() => {
-          let e = document.createElement("div");
-          e.id = "_game_score";
-          return e;
-        })(),
-        set time(v) {
-          this._time = v;
-          this.points++;
-        },
-        get time() {
-          return this._time;
-        },
-        set points(v) {
-          this._points = v;
-          self.SCORE.LOC.textContent = `Points: ${this.points}  |  Lives: ${this.lives}`;
-          if (this.points === this.max) {
-            clearInterval(self.TICK);
-            function RENDER() {
-              return new Promise((resolve, reject) => {
-                const tempROAD = Array.from(
-                  { length: self.ROAD.length },
-                  (_, i) => [...self.ROAD[i]]
-                );
-                const temp = [
-                  ...self.BUILDINGS.ARR.map((e) => [...e]),
-                  ...tempROAD,
-                  ...new Array(self.BUILDINGS.ARR.length - 3)
-                    .fill(null)
-                    .map(() => new Array(self.ROAD[0].length).fill("░")),
-                ];
-                self.QUEUE.RUN(temp);
-                temp.splice(0, 0, new Array(self.ROAD[0].length).fill("‾"));
-                temp.push(new Array(self.ROAD[0].length).fill("‾"));
-                self.RENDERTO.innerHTML = temp.DOCPRINT();
-                resolve();
-              });
-            }
-            self.QUEUE.ARR = [self.USER];
-            self.ROAD.forEach((_, i) => {
-              self.QUEUE.ADD(
-                new self.TMPLS.truckDouble(
-                  self.ROAD[0].length,
-                  i - 1,
-                  self.MOVESPEED + self.MOVESPEED.sign()
-                )
-              );
-            });
-            self.TICK = setInterval(async () => {
-              let truckCount = 0;
-              let truckOverUSER = 0;
-              await RENDER();
-              self.QUEUE.ARR.forEach((e) => {
-                if (self.MOVESPEED < 0) {
-                  if (e.bounds.TR.x < 0) truckCount++;
-                  if (e.x === self.USER.x && e !== self.USER) truckOverUSER++;
-                }
-              });
-              if (truckOverUSER === self.QUEUE.ARR.length - 1) {
-                const index = self.QUEUE.ARR.indexOf(self.USER);
-                self.QUEUE.ARR.splice(index, 1);
-              }
-              if (truckCount === self.QUEUE.ARR.length) {
-                clearInterval(self.TICK);
-                self.GAMEEND(self);
-              }
-            }, self.RENDERSPEED);
-          }
-        },
-        get points() {
-          return this._points;
-        },
-        set lives(v) {
-          const inself = this;
-          const hold = inself.lives;
-          inself._lives = v;
-          let callback;
-          if (hold > inself.lives && inself.lives > 0) {
-            callback = self.PLAY;
-            inself.points = 0;
-          } else if (inself.lives === 0) callback = self.GAMEEND;
+      (this.SPEEDKEY = SPEEDKEY || "z");
+    this.SCORE = {
+      _time: 0,
+      _points: 0,
+      _lives: LIVES,
+      max: MAXSCORE,
+      LOC: (() => {
+        let e = document.createElement("div");
+        e.id = "_game_score";
+        return e;
+      })(),
+      set time(v) {
+        this._time = v;
+        this.points++;
+      },
+      get time() {
+        return this._time;
+      },
+      set points(v) {
+        this._points = v;
+        self.SCORE.LOC.textContent = `Points: ${this.points}  |  Lives: ${this.lives}`;
+        if (this.points === this.max) {
           clearInterval(self.TICK);
-          self.SCORE.LOC.textContent = "CRASH!";
-          setTimeout(() => callback(self), 1000);
-        },
-        get lives() {
-          return this._lives;
-        },
-      });
+          function RENDER() {
+            return new Promise((resolve, reject) => {
+              const tempROAD = Array.from(
+                { length: self.ROAD.length },
+                (_, i) => [...self.ROAD[i]]
+              );
+              const temp = [
+                ...self.BUILDINGS.ARR.map((e) => [...e]),
+                ...tempROAD,
+                ...new Array(self.BUILDINGS.ARR.length - 3)
+                  .fill(null)
+                  .map(() => new Array(self.ROAD[0].length).fill("░")),
+              ];
+              self.QUEUE.RUN(temp);
+              temp.splice(0, 0, new Array(self.ROAD[0].length).fill("‾"));
+              temp.push(new Array(self.ROAD[0].length).fill("‾"));
+              self.RENDERTO.innerHTML = temp.DOCPRINT();
+              resolve();
+            });
+          }
+          self.QUEUE.ARR = [self.USER];
+          self.ROAD.forEach((_, i) => {
+            self.QUEUE.ADD(
+              new self.TMPLS.truckDouble(
+                self.ROAD[0].length,
+                i - 1,
+                self.MOVESPEED + self.MOVESPEED.sign()
+              )
+            );
+          });
+          self.TICK = setInterval(async () => {
+            let truckCount = 0;
+            let truckOverUSER = 0;
+            await RENDER();
+            self.QUEUE.ARR.forEach((e) => {
+              if (self.MOVESPEED < 0) {
+                if (e.bounds.TR.x < 0) truckCount++;
+                if (e.x === self.USER.x && e !== self.USER) truckOverUSER++;
+              }
+            });
+            if (truckOverUSER === self.QUEUE.ARR.length - 1) {
+              const index = self.QUEUE.ARR.indexOf(self.USER);
+              self.QUEUE.ARR.splice(index, 1);
+            }
+            if (truckCount === self.QUEUE.ARR.length) {
+              clearInterval(self.TICK);
+              self.GAMEEND(self);
+            }
+          }, self.RENDERSPEED);
+        }
+      },
+      get points() {
+        return this._points;
+      },
+      set lives(v) {
+        const inself = this;
+        const hold = inself.lives;
+        inself._lives = v;
+        let callback;
+        if (hold > inself.lives && inself.lives > 0) {
+          callback = self.PLAY;
+          inself.points = 0;
+        } else if (inself.lives === 0) callback = self.GAMEEND;
+        clearInterval(self.TICK);
+        self.SCORE.LOC.textContent = "CRASH!";
+        setTimeout(() => callback(self), 1000);
+      },
+      get lives() {
+        return this._lives;
+      },
+    };
     this.SETUP(self);
   }
   async SETUP(self) {
@@ -389,10 +392,54 @@ class Game {
       if (self.KEYS.has(k)) self.KEYS.delete(k);
     });
     self.MAXLEVEL = Object.keys(self.TMPLS).filter((v) => v[0] === "u").length;
+    await self.OPEN(self);
     self.RENDERTO.insertAdjacentElement("beforebegin", self.SCORE.LOC);
     self.LEVEL = Math.min(self.MAXLEVEL, self.LEVEL);
     self.RENDERSPEED = self.SPEED * (1 / self.LEVEL);
-    self.PLAY(self);
+    // self.PLAY(self);
+  }
+  async OPEN(self) {
+    const time = 100;
+    let mult = 1;
+    let speedkey = false;
+    function Time() {
+      return time * (1 / mult);
+    }
+    String.prototype.TYPE = async function (loc) {
+      const inself = this;
+      return new Promise(async (resolveAll, reject) => {
+        try {
+          const split = inself.split("");
+          for (let i = 0; i < split.length; i++) {
+            await letter(split[i], Time());
+            if (i === split.length - 1) resolveAll(inself);
+          }
+          function letter(e, t) {
+            return new Promise((resolve, reject) => {
+              setTimeout(() => {
+                loc.appendChild(document.createTextNode(e));
+                resolve();
+              }, t);
+            });
+          }
+        } catch (error) {
+          reject(error);
+        }
+      });
+    };
+    window.addEventListener("keydown", (event) => {
+      if (speedkey === false && event.key === self.SPEEDKEY) {
+        mult = 3;
+        speedkey = true;
+      }
+    });
+    window.addEventListener("keyup", (event) => {
+      if (event.key === self.SPEEDKEY) {
+        speedkey = false;
+        mult = 1;
+      }
+    });
+    await "ASCII-Based Driving Game".TYPE(self.RENDERTO);
   }
   async PLAY(self) {
     const seg = self.TMPLS.SGMT;
@@ -718,17 +765,18 @@ class Game {
 }
 
 const myGame = new Game(
-  1,
-  3,
+  null,
+  null,
   70,
   document.querySelector("#game"),
   80,
   ["ArrowUp", "ArrowDown"],
   -1,
   20,
-  3,
+  null,
   400,
-  800
+  800,
+  "z"
 );
 
 //good speed is 100 or 80
