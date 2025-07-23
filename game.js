@@ -427,6 +427,74 @@ class Game {
         }
       });
     };
+    HTMLElement.prototype.select = async function (
+      t,
+      bool = false,
+      func = false
+    ) {
+      const save = this.textContent;
+      const inSelf = this;
+      const text = save.split("");
+      const swap = [">", " "];
+      const end = text.slice(1).join("");
+      let i = swap.indexOf(text[0]);
+      const interval = setInterval(
+        () => (this.textContent = swap[(i ^= 1)] + end),
+        t
+      );
+      if (bool == true) {
+        return new Promise(async (resolve, reject) => {
+          let flag = false;
+          const flagFunc = () => {
+            flag = false;
+          };
+          const controlFunction = async (e) => {
+            if (enterFlag == true) return;
+            if (flag == true) return;
+            if (e.key == "Enter") {
+              flag = true;
+              clearInterval(interval);
+              window.removeEventListener("keydown", controlFunction);
+              window.removeEventListener("keyup", flagFunc);
+              if (func) {
+                await func();
+                resolve();
+              } else reject("no function");
+            }
+          };
+          window.addEventListener("keydown", controlFunction);
+          window.addEventListener("keyup", flagFunc);
+        });
+      }
+      return {
+        stop() {
+          clearInterval(interval);
+          inSelf.textContent = save;
+        },
+      };
+    };
+    HTMLElement.prototype.falseInput = function (
+      bool,
+      keyArr,
+      func,
+      id = "Default"
+    ) {
+      if (bool == false) {
+        if (!this[id]) {
+          const listener = (e) => {
+            if (keyArr.includes(e.key)) func(e);
+          };
+          this[id] = listener;
+          window.addEventListener("keydown", this[id]);
+        } else console.log(`${e.key} is not in ${keyArr}`);
+        return id;
+      } else {
+        if (this[id]) {
+          window.removeEventListener("keydown", this[id]);
+          this[id] = undefined;
+        }
+      }
+    };
     window.addEventListener("keydown", (event) => {
       if (speedkey === false && event.key === self.SPEEDKEY) {
         mult = 3;
