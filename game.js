@@ -376,7 +376,7 @@ class Game {
           };
           if (i === 1) {
             self.USERPROPS.push(k);
-            self.USERTMPLS.push(v);
+            self.USERTMPLS.push(Array.from(v).DIV(2));
           }
         });
       } else {
@@ -513,6 +513,14 @@ class Game {
       h2.textContent = "";
       await ">>> Select Level >>>".TYPE(h1);
     });
+    const longest = self.USERTMPLS.sort(
+      (a, b) => b[0].length - a[0].length
+    )?.[0];
+    const boxWidth = longest[0].length + 4;
+    const selectionARR = new Array((boxWidth + 2) * self.MAXLEVEL)
+      .fill(null)
+      .map(() => new Array((boxWidth + 2) * self.MAXLEVEL).fill(" "));
+    for (let i = 0; i < self.MAXLEVEL; i++) {}
   }
   async PLAY(self) {
     const seg = self.TMPLS.SGMT;
