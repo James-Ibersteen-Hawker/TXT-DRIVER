@@ -524,12 +524,28 @@ class Game {
       .fill(null)
       .map(() => new Array(boxWidth * self.MAXLEVEL + 1).fill(" "));
     let levelIncr = 1;
+    let vehicleIncr = 0;
+    const y = Math.floor(boxArr.length / 2);
     for (let i = 0; i < boxArr.length; i++) {
       for (let q = 0; q < boxArr[i].length; q++) {
         if (q % boxWidth === 0) boxArr[i][q] = "|";
-        else if (q % (boxWidth / 2) === 0 && i === 1) {
+        else if (q % Math.round(boxWidth / 2) === 0 && i === 1) {
           boxArr[i][q] = levelIncr;
           levelIncr++;
+        }
+        if (
+          i === y &&
+          q % Math.round(boxWidth / 2) === 0 &&
+          boxArr[i][q] !== "|"
+        ) {
+          const current = self.USERTMPLS[vehicleIncr];
+          if (current)
+            current.OVER(
+              boxArr,
+              q - Math.round(current[0].length / 2) + 1,
+              y - current.length / 2
+            );
+          vehicleIncr++;
         }
       }
     }
