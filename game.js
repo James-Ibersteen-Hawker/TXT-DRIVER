@@ -300,9 +300,11 @@ class Game {
     Array.prototype.PROPSORT = function (prop) {
       this.sort((a, b) => a[prop] - b[prop]);
     };
-    Array.prototype.DOCPRINT = function () {
+    Array.prototype.DOCPRINT = function (border = true) {
       return this.map((e, i, a) =>
-        i !== a.length - 1 ? `|${e.join("")}|` : ` ${e.join("")} `
+        i !== a.length - 1 && border === true
+          ? `|${e.join("")}|`
+          : ` ${e.join("")} `
       ).join("<br>");
     };
     Number.prototype.sign = function () {
@@ -403,8 +405,9 @@ class Game {
     // self.PLAY(self);
   }
   async OPEN(self) {
-    const time = 300;
+    const time = 20;
     let mult = 1;
+    const speedIncr = 5;
     let speedkey = false;
     let enterFlag = false;
     function Time() {
@@ -492,7 +495,7 @@ class Game {
     };
     window.addEventListener("keydown", (event) => {
       if (speedkey === false && event.key === self.SPEEDKEY) {
-        mult = 3;
+        mult = speedIncr;
         speedkey = true;
       }
     });
@@ -517,10 +520,25 @@ class Game {
       (a, b) => b[0].length - a[0].length
     )?.[0];
     const boxWidth = longest[0].length + 4;
-    const selectionARR = new Array((boxWidth + 2) * self.MAXLEVEL)
+    const boxArr = new Array(Math.round(boxWidth / 2))
       .fill(null)
-      .map(() => new Array((boxWidth + 2) * self.MAXLEVEL).fill(" "));
-    for (let i = 0; i < self.MAXLEVEL; i++) {}
+      .map(() => new Array(boxWidth * self.MAXLEVEL + 1).fill(" "));
+    let levelIncr = 1;
+    for (let i = 0; i < boxArr.length; i++) {
+      for (let q = 0; q < boxArr[i].length; q++) {
+        if (q % boxWidth === 0) boxArr[i][q] = "|";
+        else if (q % (boxWidth / 2) === 0 && i === 1) {
+          boxArr[i][q] = levelIncr;
+          levelIncr++;
+        }
+      }
+    }
+    boxArr.splice(0, 0, new Array(boxArr[0].length).fill("-"));
+    boxArr.push(new Array(boxArr[0].length).fill("-"));
+
+    const selectionMenu = document.createElement("div");
+    self.RENDERTO.append(selectionMenu);
+    selectionMenu.innerHTML = boxArr.DOCPRINT(false);
   }
   async PLAY(self) {
     const seg = self.TMPLS.SGMT;
