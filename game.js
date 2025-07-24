@@ -176,6 +176,7 @@ class Game {
       (this.MAXLEVEL = null),
       (this.RENDERSPEED = 0),
       (this.USERPROPS = []),
+      (this.USERTMPLS = []),
       (this.SPEEDKEY = SPEEDKEY || "z");
     this.SCORE = {
       _time: 0,
@@ -373,7 +374,10 @@ class Game {
               return this._y;
             }
           };
-          if (i === 1) self.USERPROPS.push(k);
+          if (i === 1) {
+            self.USERPROPS.push(k);
+            self.USERTMPLS.push(v);
+          }
         });
       } else {
         const [name, val] = templates[2]?.[0];
@@ -399,7 +403,7 @@ class Game {
     // self.PLAY(self);
   }
   async OPEN(self) {
-    const time = 100;
+    const time = 300;
     let mult = 1;
     let speedkey = false;
     let enterFlag = false;
@@ -500,16 +504,15 @@ class Game {
     });
     const h1 = document.createElement("h1");
     self.RENDERTO.append(h1);
-    await "ASCII-Based Driving Game".TYPE(h1);
+    await ">>> Car.TXT >>>".TYPE(h1);
     const h2 = document.createElement("h2");
     self.RENDERTO.append(h2);
     await "  Play".TYPE(h2);
     await h2.SELECT(time, true, async () => {
       h1.textContent = "";
       h2.textContent = "";
-      await "Select Level".TYPE(h1);
+      await ">>> Select Level >>>".TYPE(h1);
     });
-    
   }
   async PLAY(self) {
     const seg = self.TMPLS.SGMT;
