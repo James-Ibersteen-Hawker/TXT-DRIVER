@@ -380,6 +380,8 @@ class Game {
         self.TMPLS[name] = Array.from(val).DIV(3);
       }
     });
+    self.MAXLEVEL = Object.keys(self.TMPLS).filter((v) => v[0] === "u").length;
+    await self.OPEN(self);
     window.addEventListener("keydown", (event) => {
       const k = event.key;
       if (self.KEYCONTROLS.includes(k) && !self.KEYS.has(k)) {
@@ -391,17 +393,16 @@ class Game {
       const k = event.key;
       if (self.KEYS.has(k)) self.KEYS.delete(k);
     });
-    self.MAXLEVEL = Object.keys(self.TMPLS).filter((v) => v[0] === "u").length;
-    await self.OPEN(self);
-    self.RENDERTO.insertAdjacentElement("beforebegin", self.SCORE.LOC);
-    self.LEVEL = Math.min(self.MAXLEVEL, self.LEVEL);
-    self.RENDERSPEED = self.SPEED * (1 / self.LEVEL);
+    // self.RENDERTO.insertAdjacentElement("beforebegin", self.SCORE.LOC);
+    // self.LEVEL = Math.min(self.MAXLEVEL, self.LEVEL);
+    // self.RENDERSPEED = self.SPEED * (1 / self.LEVEL);
     // self.PLAY(self);
   }
   async OPEN(self) {
     const time = 100;
     let mult = 1;
     let speedkey = false;
+    let enterFlag = false;
     function Time() {
       return time * (1 / mult);
     }
@@ -427,51 +428,41 @@ class Game {
         }
       });
     };
-    HTMLElement.prototype.select = async function (
-      t,
-      bool = false,
-      func = false
+    HTMLElement.prototype.SELECT = async function (
+      step = 100,
+      hasCall = false,
+      callBack = false
     ) {
-      const save = this.textContent;
-      const inSelf = this;
-      const text = save.split("");
-      const swap = [">", " "];
-      const end = text.slice(1).join("");
-      let i = swap.indexOf(text[0]);
-      const interval = setInterval(
-        () => (this.textContent = swap[(i ^= 1)] + end),
-        t
-      );
-      if (bool == true) {
-        return new Promise(async (resolve, reject) => {
-          let flag = false;
-          const flagFunc = () => {
-            flag = false;
-          };
-          const controlFunction = async (e) => {
-            if (enterFlag == true) return;
-            if (flag == true) return;
-            if (e.key == "Enter") {
-              flag = true;
-              clearInterval(interval);
-              window.removeEventListener("keydown", controlFunction);
-              window.removeEventListener("keyup", flagFunc);
-              if (func) {
-                await func();
-                resolve();
-              } else reject("no function");
+      const ref = this;
+      const save = ref.textContent.split("");
+      let i = 0;
+      const int = setInterval(() => {
+        ref.textContent = `${[">", " "][(i ^= 1)]}${save.slice(1).join("")}`;
+      }, step);
+      return hasCall
+        ? new Promise(async (resolve, reject) => {
+            const press = 1;
+            let flag = 0;
+            async function CTRLFC(e) {
+              if (flag & press) return;
+              if (e.key === "Enter") {
+                flag |= press;
+                clearInterval(int);
+                window.removeEventListener("keydown", CTRLFC);
+                if (callBack) {
+                  await callBack();
+                  resolve();
+                } else reject("No provided function");
+              }
             }
+            window.addEventListener("keydown", CTRLFC);
+          })
+        : {
+            stop() {
+              clearInterval(int);
+              ref.textContent = save.join("");
+            },
           };
-          window.addEventListener("keydown", controlFunction);
-          window.addEventListener("keyup", flagFunc);
-        });
-      }
-      return {
-        stop() {
-          clearInterval(interval);
-          inSelf.textContent = save;
-        },
-      };
     };
     HTMLElement.prototype.falseInput = function (
       bool,
@@ -507,7 +498,18 @@ class Game {
         mult = 1;
       }
     });
-    await "ASCII-Based Driving Game".TYPE(self.RENDERTO);
+    const h1 = document.createElement("h1");
+    self.RENDERTO.append(h1);
+    await "ASCII-Based Driving Game".TYPE(h1);
+    const h2 = document.createElement("h2");
+    self.RENDERTO.append(h2);
+    await "  Play".TYPE(h2);
+    await h2.SELECT(time, true, async () => {
+      h1.textContent = "";
+      h2.textContent = "";
+      await "Select Level".TYPE(h1);
+    });
+    
   }
   async PLAY(self) {
     const seg = self.TMPLS.SGMT;
