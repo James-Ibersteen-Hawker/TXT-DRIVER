@@ -405,240 +405,300 @@ class Game {
       const k = event.key;
       if (self.KEYS.has(k)) self.KEYS.delete(k);
     });
-    // self.RENDERTO.insertAdjacentElement("beforebegin", self.SCORE.LOC);
-    // self.LEVEL = Math.min(self.MAXLEVEL, self.LEVEL);
-    // self.RENDERSPEED = self.SPEED * (1 / self.LEVEL);
-    // self.PLAY(self);
+    console.log("out");
+    self.RENDERTO.insertAdjacentElement("beforebegin", self.SCORE.LOC);
+    self.LEVEL = Math.min(self.MAXLEVEL, self.LEVEL);
+    self.RENDERSPEED = self.SPEED * (1 / self.LEVEL);
+    self.PLAY(self);
   }
   async OPEN(self) {
-    const time = self.TYPETIME;
-    let mult = 1;
-    const speedIncr = 5;
-    let speedkey = false;
-    let enterFlag = false;
-    function Time() {
-      return time * (1 / mult);
-    }
-    String.prototype.TYPE = async function (loc) {
-      const inself = this;
-      return new Promise(async (resolveAll, reject) => {
-        try {
-          const split = inself.split("");
-          for (let i = 0; i < split.length; i++) {
-            await letter(split[i], Time());
-            if (i === split.length - 1) resolveAll(inself);
+    return new Promise(async (resolveTOP, rejectTOP) => {
+      const time = self.TYPETIME;
+      const selectStep = 175;
+      const speedIncr = 5;
+      const h1 = document.createElement("h1");
+      const h3 = document.createElement("h3");
+      const selectionMenu = document.createElement("div");
+      let mult = 1;
+      let speedkey = false;
+      function Time() {
+        return time * (1 / mult);
+      }
+      function WAIT(t) {
+        return new Promise((resolve, reject) => {
+          setTimeout(() => {
+            resolve();
+          }, t);
+        });
+      }
+      function* laneCounter() {
+        let start = 3;
+        while (true) {
+          for (let i = 0; i < start; i++) yield start;
+          start++;
+        }
+      }
+      const laneGen = laneCounter();
+      String.prototype.TYPE = async function (loc) {
+        const inself = this;
+        return new Promise(async (resolveAll, reject) => {
+          try {
+            const split = inself.split("");
+            for (let i = 0; i < split.length; i++) {
+              await letter(split[i], Time());
+              if (i === split.length - 1) resolveAll(inself);
+            }
+            function letter(e, t) {
+              return new Promise((resolve, reject) => {
+                try {
+                  setTimeout(() => {
+                    loc.appendChild(document.createTextNode(e));
+                    resolve();
+                  }, t);
+                } catch (e) {
+                  reject(e);
+                }
+              });
+            }
+          } catch (error) {
+            reject(error);
           }
-          function letter(e, t) {
-            return new Promise((resolve, reject) => {
-              setTimeout(() => {
-                loc.appendChild(document.createTextNode(e));
-                resolve();
-              }, t);
-            });
+        });
+      };
+      HTMLElement.prototype.SELECT = async function (
+        step = 100,
+        hasCall = false,
+        callBack = false
+      ) {
+        const ref = this;
+        const save = ref.textContent.split("");
+        let i = 0;
+        const int = setInterval(() => {
+          ref.textContent = `${[">", " "][(i ^= 1)]}${save.slice(1).join("")}`;
+        }, step);
+        return hasCall
+          ? new Promise(async (resolve, reject) => {
+              const press = 1;
+              let flag = 0;
+              async function CTRLFC(e) {
+                if (flag & press) return;
+                if (e.key === "Enter") {
+                  flag |= press;
+                  clearInterval(int);
+                  window.removeEventListener("keydown", CTRLFC);
+                  if (callBack) {
+                    await callBack();
+                    resolve();
+                  } else reject("No provided function");
+                }
+              }
+              window.addEventListener("keydown", CTRLFC);
+            })
+          : {
+              stop() {
+                clearInterval(int);
+                ref.textContent = save.join("");
+              },
+            };
+      };
+      HTMLElement.prototype.falseInput = function (
+        bool,
+        keyArr,
+        func,
+        id = "Default"
+      ) {
+        if (bool == false) {
+          if (!this[id]) {
+            const listener = (e) => {
+              if (keyArr.includes(e.key)) func(e);
+            };
+            this[id] = listener;
+            window.addEventListener("keydown", this[id]);
+          } else console.log(`${e.key} is not in ${keyArr}`);
+          return id;
+        } else {
+          if (this[id]) {
+            window.removeEventListener("keydown", this[id]);
+            this[id] = undefined;
           }
-        } catch (error) {
-          reject(error);
+        }
+      };
+      window.addEventListener("keydown", (event) => {
+        if (speedkey === false && event.key === self.SPEEDKEY) {
+          mult = speedIncr;
+          speedkey = true;
         }
       });
-    };
-    HTMLElement.prototype.SELECT = async function (
-      step = 100,
-      hasCall = false,
-      callBack = false
-    ) {
-      const ref = this;
-      const save = ref.textContent.split("");
-      let i = 0;
-      const int = setInterval(() => {
-        ref.textContent = `${[">", " "][(i ^= 1)]}${save.slice(1).join("")}`;
-      }, step);
-      return hasCall
-        ? new Promise(async (resolve, reject) => {
-            const press = 1;
-            let flag = 0;
+      window.addEventListener("keyup", (event) => {
+        if (event.key === self.SPEEDKEY) {
+          speedkey = false;
+          mult = 1;
+        }
+      });
+      try {
+        self.RENDERTO.append(h1);
+        await ">>> Car.TXT >>>".TYPE(h1);
+        self.RENDERTO.append(h3);
+        await WAIT(500);
+        h3.textContent = "  Play";
+        await h3.SELECT(selectStep, true, async () => {
+          h1.textContent = "";
+          h3.textContent = "";
+          await ">>> Select Difficulty >>>".TYPE(h1);
+          await WAIT(500);
+          h3.textContent = `- Use ${self.SCROLLKEYS[0]} an ${self.SCROLLKEYS[1]} to scroll. Press Enter to select. -`;
+          await WAIT(500);
+        });
+        const boxWidth =
+          [...self.USERTMPLS].sort((a, b) => b[0].length - a[0].length)?.[0][0]
+            .length + 4;
+        const boxArr = new Array(Math.max(Math.round(boxWidth / 2), 9))
+          .fill(null)
+          .map(() => new Array(boxWidth * self.MAXLEVEL + 1).fill(" "));
+        let levelIncr = 1;
+        let vehicleIncr = 0;
+        let laneIncr = 0;
+        const y = Math.floor(boxArr.length / 2);
+        const boxArrRef = Object.fromEntries(
+          Array.from({ length: self.MAXLEVEL }, (_, i) => [`_${i + 1}`, false])
+        );
+        Object.keys(boxArrRef).forEach((e) => {
+          Object.defineProperty(boxArrRef, e.slice(1), {
+            set: function (v) {
+              this[e] = v;
+              const fI = boxArr[2].indexOf(Number(e.slice(1)));
+              const lI = boxArr[2].lastIndexOf(Number(e.slice(1)));
+              let arrowL, arrowR;
+              if (v) [arrowL, arrowR] = [[["-", "-", ">"]], [["<", "-", "-"]]];
+              if (!v) [arrowL, arrowR] = [[[" ", " ", " "]], [[" ", " ", " "]]];
+              arrowL.OVER(boxArr, fI - arrowL.length - 3, 2);
+              arrowR.OVER(boxArr, lI + 2, 2);
+              selectionMenu.innerHTML = boxArr.DOCPRINT(false);
+            },
+            get: function () {
+              return this[e];
+            },
+          });
+        });
+        boxArrRef.currentCatalogue = {
+          lives: null,
+          lanes: null,
+        };
+        for (let i = 0; i < self.MAXLEVEL; i++) {
+          boxArrRef[`${i + 1}Catalogue`] = {
+            lives: 3,
+            lanes: laneGen.next().value,
+          };
+        }
+        for (let i = 0; i < boxArr.length; i++) {
+          for (let q = 0; q < boxArr[i].length; q++) {
+            if (q % boxWidth === 0) boxArr[i][q] = "|";
+            else if (q % Math.round(boxWidth / 2) === 0 && i === 1) {
+              boxArr[i][q] = levelIncr;
+              levelIncr++;
+            }
+            if (q % Math.round(boxWidth / 2) === 0 && boxArr[i][q] !== "|") {
+              if (i === y) {
+                const current = self.USERTMPLS[vehicleIncr];
+                if (current)
+                  current.OVER(
+                    boxArr,
+                    q - Math.round(current[0].length / 2) + 1,
+                    y - current.length / 2
+                  );
+                vehicleIncr++;
+              }
+              if (i === boxArr.length - 3) {
+                const text = [`Lives: 3`.split("")];
+                text.OVER(boxArr, q - Math.round(text[0].length / 2) + 1, i);
+              }
+              if (i === boxArr.length - 2) {
+                const text = [
+                  `Lanes: ${boxArrRef[`${laneIncr + 1}Catalogue`].lanes}`.split(
+                    ""
+                  ),
+                ];
+                text.OVER(boxArr, q - Math.round(text[0].length / 2) + 1, i);
+                laneIncr++;
+              }
+            }
+          }
+        }
+        boxArr.splice(0, 0, new Array(boxArr[0].length).fill("-"));
+        boxArr.push(new Array(boxArr[0].length).fill("-"));
+        self.RENDERTO.append(selectionMenu);
+        selectionMenu.innerHTML = boxArr.DOCPRINT(false);
+        boxArrRef["1"] = true;
+        let activeI = 1;
+        function scrollLevels(e) {
+          if (e.key === self.SCROLLKEYS[0]) {
+            boxArrRef[`${activeI}`] = false;
+            activeI++;
+            if (activeI > self.MAXLEVEL) activeI = 1;
+            boxArrRef[`${activeI}`] = true;
+          } else if (e.key === self.SCROLLKEYS[1]) {
+            boxArrRef[`${activeI}`] = false;
+            activeI--;
+            if (activeI < 1) activeI = self.MAXLEVEL;
+            boxArrRef[`${activeI}`] = true;
+          }
+        }
+        window.addEventListener("keydown", scrollLevels);
+        await new Promise(async (resolve, reject) => {
+          try {
             async function CTRLFC(e) {
-              if (flag & press) return;
               if (e.key === "Enter") {
-                flag |= press;
-                clearInterval(int);
+                window.removeEventListener("keydown", scrollLevels);
                 window.removeEventListener("keydown", CTRLFC);
-                if (callBack) {
-                  await callBack();
-                  resolve();
-                } else reject("No provided function");
+                self.LEVEL = activeI;
+                self.LIVES = boxArrRef[`${activeI}Catalogue`].lives;
+                self.LANES = boxArrRef[`${activeI}Catalogue`].lanes;
+                self.SCORE._lives = self.LIVES;
+                const subH3 = document.createElement("h3");
+                self.RENDERTO.append(subH3);
+                await `- Difficulty ${self.LEVEL} selected. -`.TYPE(subH3);
+                resolve();
               }
             }
             window.addEventListener("keydown", CTRLFC);
-          })
-        : {
-            stop() {
-              clearInterval(int);
-              ref.textContent = save.join("");
-            },
-          };
-    };
-    HTMLElement.prototype.falseInput = function (
-      bool,
-      keyArr,
-      func,
-      id = "Default"
-    ) {
-      if (bool == false) {
-        if (!this[id]) {
-          const listener = (e) => {
-            if (keyArr.includes(e.key)) func(e);
-          };
-          this[id] = listener;
-          window.addEventListener("keydown", this[id]);
-        } else console.log(`${e.key} is not in ${keyArr}`);
-        return id;
-      } else {
-        if (this[id]) {
-          window.removeEventListener("keydown", this[id]);
-          this[id] = undefined;
-        }
-      }
-    };
-    function WAIT(t) {
-      return new Promise((resolve, reject) => {
-        setTimeout(() => {
-          resolve();
-        }, t);
-      });
-    }
-    window.addEventListener("keydown", (event) => {
-      if (speedkey === false && event.key === self.SPEEDKEY) {
-        mult = speedIncr;
-        speedkey = true;
-      }
-    });
-    window.addEventListener("keyup", (event) => {
-      if (event.key === self.SPEEDKEY) {
-        speedkey = false;
-        mult = 1;
-      }
-    });
-    const h1 = document.createElement("h1");
-    self.RENDERTO.append(h1);
-    await ">>> Car.TXT >>>".TYPE(h1);
-    const h2 = document.createElement("h2");
-    self.RENDERTO.append(h2);
-    await WAIT(500);
-    h2.textContent = "  Play";
-    await h2.SELECT(time, true, async () => {
-      h1.textContent = "";
-      h2.textContent = "";
-      await ">>> Select Level >>>".TYPE(h1);
-    });
-    await WAIT(500);
-    const longest = [...self.USERTMPLS].sort(
-      (a, b) => b[0].length - a[0].length
-    )?.[0];
-    const boxWidth = longest[0].length + 4;
-    const boxArr = new Array(Math.max(Math.round(boxWidth / 2), 9))
-      .fill(null)
-      .map(() => new Array(boxWidth * self.MAXLEVEL + 1).fill(" "));
-    let levelIncr = 1;
-    let vehicleIncr = 0;
-    let laneIncr = 0;
-    const y = Math.floor(boxArr.length / 2);
-    for (let i = 0; i < boxArr.length; i++) {
-      for (let q = 0; q < boxArr[i].length; q++) {
-        if (q % boxWidth === 0) boxArr[i][q] = "|";
-        else if (q % Math.round(boxWidth / 2) === 0 && i === 1) {
-          boxArr[i][q] = levelIncr;
-          levelIncr++;
-        }
-        if (q % Math.round(boxWidth / 2) === 0 && boxArr[i][q] !== "|") {
-          if (i === y) {
-            const current = self.USERTMPLS[vehicleIncr];
-            if (current)
-              current.OVER(
-                boxArr,
-                q - Math.round(current[0].length / 2) + 1,
-                y - current.length / 2
-              );
-            vehicleIncr++;
+          } catch (error) {
+            reject(error);
           }
-          if (i === boxArr.length - 3) {
-            const text = [`Lives: X`.split("")];
-            text.OVER(boxArr, q - Math.round(text[0].length / 2) + 1, i);
-          }
-          if (i === boxArr.length - 2) {
-            const text = [`Lanes: ${3 + laneIncr}`.split("")];
-            text.OVER(boxArr, q - Math.round(text[0].length / 2) + 1, i);
-            laneIncr++;
-          }
-        }
-      }
-    }
-    const boxArrRef = Object.fromEntries(
-      Array.from({ length: self.MAXLEVEL }, (_, i) => [`_${i + 1}`, false])
-    );
-    Object.keys(boxArrRef).forEach((e) => {
-      Object.defineProperty(boxArrRef, e.slice(1), {
-        set: function (v) {
-          this[e] = v;
-          const fI = boxArr[2].indexOf(Number(e.slice(1)));
-          const lI = boxArr[2].lastIndexOf(Number(e.slice(1)));
-          let arrows;
-          if (v === true) arrows = [[["-", "-", ">"]], [["<", "-", "-"]]];
-          if (v === false) arrows = [[[" ", " ", " "]], [[" ", " ", " "]]];
-          arrows[0].OVER(boxArr, fI - arrows[0].length - 3, 2);
-          arrows[1].OVER(boxArr, lI + 2, 2);
-          selectionMenu.innerHTML = boxArr.DOCPRINT(false);
-        },
-        get: function () {
-          return this[e];
-        },
-      });
-    });
-    boxArr.splice(0, 0, new Array(boxArr[0].length).fill("-"));
-    boxArr.push(new Array(boxArr[0].length).fill("-"));
-    const selectionMenu = document.createElement("div");
-    self.RENDERTO.append(selectionMenu);
-    selectionMenu.innerHTML = boxArr.DOCPRINT(false);
-    boxArrRef["1"] = true;
-    let activeI = 1;
-    function scrollLevels(e) {
-      if (e.key === self.SCROLLKEYS[0]) {
-        boxArrRef[`${activeI}`] = false;
-        activeI++;
-        if (activeI > self.MAXLEVEL) activeI = 1;
-        boxArrRef[`${activeI}`] = true;
-      } else if (e.key === self.SCROLLKEYS[1]) {
-        boxArrRef[`${activeI}`] = false;
-        activeI--;
-        if (activeI < 1) activeI = self.MAXLEVEL;
-        boxArrRef[`${activeI}`] = true;
-      }
-    }
-    window.addEventListener("keydown", scrollLevels);
-    await new Promise(async (resolve, reject) => {
-      try {
-        function CTRLFC(e) {
-          if (e.key === "Enter") {
-            window.removeEventListener("keydown", scrollLevels);
-            window.removeEventListener("keydown", CTRLFC);
-            self.LEVEL = activeI;
-            resolve();
-          }
-        }
-        window.addEventListener("keydown", CTRLFC);
+        });
+        await WAIT(500);
+        const play = document.createElement("h2");
+        self.RENDERTO.append(play);
+        play.textContent = "  Play";
+        await play.SELECT(selectStep, true, async () => {
+          self.RENDERTO.innerHTML = "";
+          resolveTOP();
+        });
       } catch (error) {
-        throw new Error(error);
+        rejectTOP(error);
       }
-    });
-    const play = document.createElement("h2");
-    self.RENDERTO.append(play);
-    await "  Play".TYPE(play);
-    await play.SELECT(time, true, async () => {
-      setTimeout(() => {
-        alert("playing");
-      }, 1000);
     });
   }
   async PLAY(self) {
+    await new Promise(async (resolve, reject) => {
+      try {
+        for (let i = 0; i < 3; i++) {
+          await new Promise((resolveIn, rejectIn) => {
+            setTimeout(() => {
+              self.SCORE.LOC.textContent = 3 - i;
+              resolveIn();
+            }, 500);
+          });
+        }
+        setTimeout(() => {
+          self.SCORE.LOC.textContent = "DRIVE!";
+          setTimeout(() => {
+            resolve();
+          }, 500);
+        }, 500);
+      } catch (error) {
+        reject(error);
+      }
+    });
     const seg = self.TMPLS.SGMT;
     self.QUEUE.ARR = [];
     function RENDER() {
