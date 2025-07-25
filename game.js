@@ -11,6 +11,7 @@ class Game {
   MAXSPEED;
   MINSPEED;
   SPEEDKEY;
+  TYPETIME;
   SCROLLKEYS;
   constructor(
     LEVEL,
@@ -25,6 +26,7 @@ class Game {
     MAXSPEED,
     MINSPEED,
     SPEEDKEY,
+    TYPETIME,
     SCROLLKEYS
   ) {
     const self = this;
@@ -175,6 +177,7 @@ class Game {
       (this.BUILDINGS = []),
       (this.MINSPEED = MINSPEED),
       (this.MAXSPEED = MAXSPEED),
+      (this.TYPETIME = TYPETIME),
       (this.MAXLEVEL = null),
       (this.RENDERSPEED = 0),
       (this.USERPROPS = []),
@@ -408,7 +411,7 @@ class Game {
     // self.PLAY(self);
   }
   async OPEN(self) {
-    const time = 20;
+    const time = self.TYPETIME;
     let mult = 1;
     const speedIncr = 5;
     let speedkey = false;
@@ -496,6 +499,13 @@ class Game {
         }
       }
     };
+    function WAIT(t) {
+      return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          resolve();
+        }, t);
+      });
+    }
     window.addEventListener("keydown", (event) => {
       if (speedkey === false && event.key === self.SPEEDKEY) {
         mult = speedIncr;
@@ -513,12 +523,14 @@ class Game {
     await ">>> Car.TXT >>>".TYPE(h1);
     const h2 = document.createElement("h2");
     self.RENDERTO.append(h2);
-    await "  Play".TYPE(h2);
+    await WAIT(500);
+    h2.textContent = "  Play";
     await h2.SELECT(time, true, async () => {
       h1.textContent = "";
       h2.textContent = "";
       await ">>> Select Level >>>".TYPE(h1);
     });
+    await WAIT(500);
     const longest = [...self.USERTMPLS].sort(
       (a, b) => b[0].length - a[0].length
     )?.[0];
@@ -962,6 +974,7 @@ const myGame = new Game(
   400,
   800,
   "z",
+  150,
   ["ArrowRight", "ArrowLeft"]
 );
 
