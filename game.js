@@ -190,7 +190,7 @@ class Game {
         _lives: LIVES,
         max: MAXSCORE,
         LOC: (() => {
-          let e = document.createElement("div");
+          let e = document.createElement("h2");
           e.id = "_game_score";
           return e;
         })(),
@@ -405,7 +405,6 @@ class Game {
       const k = event.key;
       if (self.KEYS.has(k)) self.KEYS.delete(k);
     });
-    console.log("out");
     self.RENDERTO.insertAdjacentElement("beforebegin", self.SCORE.LOC);
     self.LEVEL = Math.min(self.MAXLEVEL, self.LEVEL);
     self.RENDERSPEED = self.SPEED * (1 / self.LEVEL);
@@ -501,28 +500,6 @@ class Game {
               },
             };
       };
-      HTMLElement.prototype.falseInput = function (
-        bool,
-        keyArr,
-        func,
-        id = "Default"
-      ) {
-        if (bool == false) {
-          if (!this[id]) {
-            const listener = (e) => {
-              if (keyArr.includes(e.key)) func(e);
-            };
-            this[id] = listener;
-            window.addEventListener("keydown", this[id]);
-          } else console.log(`${e.key} is not in ${keyArr}`);
-          return id;
-        } else {
-          if (this[id]) {
-            window.removeEventListener("keydown", this[id]);
-            this[id] = undefined;
-          }
-        }
-      };
       window.addEventListener("keydown", (event) => {
         if (speedkey === false && event.key === self.SPEEDKEY) {
           mult = speedIncr;
@@ -546,7 +523,7 @@ class Game {
           h3.textContent = "";
           await ">>> Select Difficulty >>>".TYPE(h1);
           await WAIT(500);
-          h3.textContent = `- Use ${self.SCROLLKEYS[0]} an ${self.SCROLLKEYS[1]} to scroll. Press Enter to select. -`;
+          h3.textContent = `- Use ${self.SCROLLKEYS[0]} and ${self.SCROLLKEYS[1]} to scroll. Press Enter to select. -`;
           await WAIT(500);
         });
         const boxWidth =
@@ -686,15 +663,15 @@ class Game {
             setTimeout(() => {
               self.SCORE.LOC.textContent = 3 - i;
               resolveIn();
-            }, 500);
+            }, 1000);
           });
         }
         setTimeout(() => {
           self.SCORE.LOC.textContent = "DRIVE!";
           setTimeout(() => {
             resolve();
-          }, 500);
-        }, 500);
+          }, 1000);
+        }, 1000);
       } catch (error) {
         reject(error);
       }
@@ -1031,7 +1008,7 @@ const myGame = new Game(
   -1,
   20,
   null,
-  400,
+  600,
   800,
   "z",
   150,
