@@ -39,9 +39,6 @@ class Game {
       (this.MOVESPEED = MOVESPEED),
       (this.GAMEWIDTH = GAMEWIDTH),
       (this.RENDERTO = RENDERTO),
-      (this.RANDOM = function (min, max) {
-        return Math.floor(Math.random() * (max - min + 1)) + min;
-      }),
       (this.QUEUE = {
         ARR: [],
         RUN(loc) {
@@ -54,6 +51,7 @@ class Game {
           this.ARR.forEach((e) => {
             if (e !== self.USER) e.MOVE();
           });
+          this.CHECKLOCK();
         },
         ADD(b = false) {
           if (!b) {
@@ -102,6 +100,7 @@ class Game {
                   a.USER !== true &&
                   (self.MOVESPEED < 0 ? a.x > self.USER.x : a.x < self.USER.x)
               );
+            console.log(lane);
           });
         },
       }),
@@ -153,6 +152,101 @@ class Game {
       (this.ROAD = null),
       (this.BUILDINGS = {
         ARR: [],
+        QUEUE: [],
+        CLASS: class Building {
+          height;
+          width;
+          windowCount;
+          constructor(height, width, windowCount) {
+            (this.height = height === 0 ? 1 : height),
+              (this.windowCount = windowCount),
+              (this.width = width),
+              (this.arr = null),
+              (this.x = 0),
+              (this.y = 0);
+            this.MAKE();
+          }
+          MAKE() {
+            const build = new Array(this.height)
+              .fill(null)
+              .map(() => new Array(this.width + 2).fill(" "));
+            build[0].fill("‾");
+            build.forEach((e) => (e[0] = e[e.length - 1] = "|"));
+            const windows = [];
+            for (let i = 0; i < this.windowCount; i++) {
+              let [x, y] = [
+                self.RANDOM(1, build[0].length - 2),
+                self.RANDOM(1, build.length - 2),
+              ];
+              let count = 0;
+              while (
+                windows.some((e) => e[0] === x && e[1] === y) &&
+                count < 5
+              ) {
+                [x, y] = [
+                  self.RANDOM(1, build[0].length - 2),
+                  self.RANDOM(1, build.length - 2),
+                ];
+                count++;
+              }
+              if (!windows.some((e) => e[0] === x && e[1] === y)) {
+                windows.push([x, y]);
+                build[y][x] = "█";
+              }
+            }
+            this.arr = build;
+          }
+        },
+        async RENDER() {
+          return new Promise((resolve, reject) => {
+            try {
+              const result = [];
+              this.ARR = this.ARR.map((e) => e.map(() => " "));
+              this.QUEUE.forEach((e) => {
+                if (e.arr.OVER(this.ARR, e.x, e.y) === true) result.push(e);
+              });
+              this.QUEUE = result;
+              self.RENDERQUEUE = true;
+              resolve();
+            } catch (error) {
+              reject(error);
+            }
+          });
+        },
+        async ADD(b) {
+          return new Promise((resolve, reject) => {
+            try {
+              const last = self.BUILDINGS.QUEUE.at(-1);
+              b.x = last ? last.x + last.width + 2 : 0;
+              b.y = self.BUILDINGS.ARR.length - b.height;
+              self.BUILDINGS.QUEUE.push(b);
+              resolve();
+            } catch (error) {
+              reject(error);
+            }
+          });
+        },
+        async MOVE(dir) {
+          return new Promise((resolve, reject) => {
+            try {
+              self.BUILDINGS.QUEUE.forEach((e) => (e.x += dir));
+              resolve();
+            } catch (error) {
+              reject(error);
+            }
+          });
+        },
+        async CLOCK(dir, [wMin, wMax], [winMin, winMax]) {
+          await this.ADD(
+            new this.CLASS(
+              self.RANDOM(3, this.ARR.length),
+              self.RANDOM(wMin, wMax),
+              self.RANDOM(winMin, winMax)
+            )
+          );
+          await this.MOVE(dir);
+          await this.RENDER();
+        },
       }),
       (this.LANELOOKUP = {
         sets: null,
@@ -175,6 +269,47 @@ class Game {
         },
       }),
       (this.USER = undefined),
+      (this.USERCLASS = class USER extends self.BASECLASS {
+        constructor(x, y, MOVESPEED, USER) {
+          super(x, y, MOVESPEED, USER);
+          this.template = Object.freeze(
+            new self.TMPLS[self.USERPROPS[self.LEVEL - 1]](0, 0, 0, null)
+              .template
+          );
+          this.SETUP(this, false);
+        }
+        set x(v) {
+          this._x = v;
+          this.SETUP(this, true);
+        }
+        get x() {
+          return this._x;
+        }
+        set y(v) {
+          this._y = v;
+          this.SETUP(this, true);
+        }
+        get y() {
+          return this._y;
+        }
+        collide() {
+          const sameLane = self.QUEUE.INLANE(this.y).filter(
+            (e) => e.USER !== true
+          );
+          if (sameLane.length > 0) {
+            sameLane.PROPSORT("x");
+            const first = sameLane[0];
+            const fB = { BR: first.bounds.BR, BL: first.bounds.BL };
+            const tB = { BR: this.bounds.BR, BL: this.bounds.BL };
+            for (let p in fB) {
+              const b = fB[p];
+              if (b.y == tB.BR.y) {
+                if (b.x <= tB.BR.x && b.x >= tB.BL.x) self.SCORE.lives--;
+              }
+            }
+          }
+        }
+      }),
       (this.KEYCONTROLS = KEYCONTROLS),
       (this.KEYS = new Set()),
       (this.MINSPEED = MINSPEED),
@@ -195,11 +330,7 @@ class Game {
         _points: 0,
         _lives: LIVES,
         max: MAXSCORE,
-        LOC: (() => {
-          let e = document.createElement("h2");
-          e.id = "_game_score";
-          return e;
-        })(),
+        LOC: document.createElement("h2"),
         set time(v) {
           this._time = v;
           this.points++;
@@ -212,26 +343,6 @@ class Game {
           self.SCORE.LOC.textContent = `Points: ${this.points}  |  Lives: ${this.lives}`;
           if (this.points === this.max) {
             clearInterval(self.TICK);
-            function RENDER() {
-              return new Promise((resolve, reject) => {
-                const tempROAD = Array.from(
-                  { length: self.ROAD.length },
-                  (_, i) => [...self.ROAD[i]]
-                );
-                const temp = [
-                  ...self.BUILDINGS.ARR.map((e) => [...e]),
-                  ...tempROAD,
-                  ...new Array(self.BUILDINGS.ARR.length - 3)
-                    .fill(null)
-                    .map(() => new Array(self.ROAD[0].length).fill("░")),
-                ];
-                self.QUEUE.RUN(temp);
-                temp.splice(0, 0, new Array(self.ROAD[0].length).fill("‾"));
-                temp.push(new Array(self.ROAD[0].length).fill("‾"));
-                self.RENDERTO.innerHTML = temp.DOCPRINT();
-                resolve();
-              });
-            }
             self.QUEUE.ARR = [self.USER];
             self.ROAD.forEach((_, i) => {
               self.QUEUE.ADD(
@@ -245,7 +356,7 @@ class Game {
             self.TICK = setInterval(async () => {
               let truckCount = 0;
               let truckOverUSER = 0;
-              await RENDER();
+              await self.RENDER(self, false);
               self.QUEUE.ARR.forEach((e) => {
                 if (self.MOVESPEED < 0) {
                   if (e.bounds.TR.x < 0) truckCount++;
@@ -362,7 +473,7 @@ class Game {
                       throw new Error(`${vDiff} !== integer`);
                     const fakeX =
                       m < 0 ? this.x : this.x + this.template[0].length;
-                    const dist = Math.aabs(last.x - fakeX);
+                    const dist = Math.abs(last.x - fakeX);
                     const dT = Math.abs(Math.ceil((dist / vDiff) * (2 / 3)));
                     const step = Math.ceil(Math.abs(vDiff / dT));
                     const xs = new Array(lB.TR.x - lB.TL.x + 1)
@@ -437,13 +548,6 @@ class Game {
       let speedkey = false;
       function Time() {
         return time * (1 / mult);
-      }
-      function WAIT(t) {
-        return new Promise((resolve, reject) => {
-          setTimeout(() => {
-            resolve();
-          }, t);
-        });
       }
       function* laneCounter() {
         let start = 3;
@@ -529,17 +633,23 @@ class Game {
       });
       try {
         self.RENDERTO.append(h1);
+        const speedh3 = document.createElement("h3");
+        self.RENDERTO.append(speedh3);
+        setTimeout(() => {
+          speedh3.textContent = `- Press ${self.SPEEDKEY} to accelerate typing. -`;
+        }, 350);
         await ">>> Car.TXT >>>".TYPE(h1);
-        await WAIT(500);
+        await self.WAIT(500);
         self.RENDERTO.append(h3);
         h3.textContent = "  Play";
         await h3.SELECT(selectStep, true, async () => {
           h1.textContent = "";
           h3.textContent = "";
+          speedh3.remove()
           await ">>> Select Difficulty >>>".TYPE(h1);
-          await WAIT(500);
+          await self.WAIT(500);
           h3.textContent = `- Use ${self.SCROLLKEYS[0]} and ${self.SCROLLKEYS[1]} to scroll. Press Enter to select. -`;
-          await WAIT(500);
+          await self.WAIT(500);
         });
         const boxWidth =
           [...self.USERTMPLS].sort((a, b) => b[0].length - a[0].length)?.[0][0]
@@ -657,7 +767,7 @@ class Game {
             reject(error);
           }
         });
-        await WAIT(500);
+        await self.WAIT(500);
         const play = document.createElement("h2");
         self.RENDERTO.append(play);
         play.textContent = "  Play";
@@ -673,53 +783,18 @@ class Game {
   async PLAY(self) {
     await new Promise(async (resolve, reject) => {
       try {
-        for (let i = 0; i < 3; i++) {
-          await new Promise((resolveIn, rejectIn) => {
-            setTimeout(() => {
-              self.SCORE.LOC.textContent = 3 - i;
-              resolveIn();
-            }, 1000);
-          });
+        for (let i = 3; i > 0; i--) {
+          self.SCORE.LOC.textContent = i;
+          await new Promise((resolveIn) => setTimeout(resolveIn, 1000));
         }
-        setTimeout(() => {
-          self.SCORE.LOC.textContent = "DRIVE!";
-          setTimeout(() => {
-            resolve();
-          }, 1000);
-        }, 1000);
+        self.SCORE.LOC.textContent = "DRIVE!";
+        setTimeout(resolve, 1000);
       } catch (error) {
         reject(error);
       }
     });
     const seg = self.TMPLS.SGMT;
     self.QUEUE.ARR = [];
-    function RENDER() {
-      return new Promise((resolve, reject) => {
-        const tempROAD = Array.from({ length: self.ROAD.length }, (_, i) => [
-          ...self.ROAD[i],
-        ]);
-        const temp = [
-          ...self.BUILDINGS.ARR.map((e) => [...e]),
-          ...tempROAD,
-          ...new Array(self.BUILDINGS.ARR.length - 3)
-            .fill(null)
-            .map(() => new Array(self.ROAD[0].length).fill("░")),
-        ];
-        self.USER.y = Math.min(
-          self.USER.y,
-          self.BUILDINGS.ARR.length +
-            self.ROAD.length -
-            self.USER.template.length
-        );
-        self.USER.y = Math.max(self.BUILDINGS.ARR.length - 1, self.USER.y);
-        self.QUEUE.RUN(temp);
-        temp.splice(0, 0, new Array(self.ROAD[0].length).fill("‾"));
-        temp.push(new Array(self.ROAD[0].length).fill("‾"));
-        self.RENDERTO.innerHTML = temp.DOCPRINT();
-        self.RENDERQUEUE = false;
-        resolve();
-      });
-    }
     self.LANES = Math.max(3, self.LANES);
     //road
     {
@@ -760,96 +835,10 @@ class Game {
     }
     //building generation
     {
-      class Building {
-        height;
-        width;
-        windowCount;
-        constructor(height, width, windowCount) {
-          (this.height = height === 0 ? 1 : height),
-            (this.windowCount = windowCount),
-            (this.width = width),
-            (this.arr = null),
-            (this.x = 0),
-            (this.y = 0);
-          this.MAKE();
-        }
-        MAKE() {
-          let build = new Array(this.height)
-            .fill(null)
-            .map(() => new Array(this.width + 2).fill(" "));
-          build[0].fill("‾");
-          build.forEach((e) => (e[0] = e[e.length - 1] = "|"));
-          let windows = [];
-          for (let i = 0; i < this.windowCount; i++) {
-            let [x, y] = [
-              self.RANDOM(1, build[0].length - 2),
-              self.RANDOM(1, build.length - 2),
-            ];
-            let count = 0;
-            while (windows.some((e) => e[0] === x && e[1] === y) && count < 5) {
-              [x, y] = [
-                self.RANDOM(1, build[0].length - 2),
-                self.RANDOM(1, build.length - 2),
-              ];
-              count++;
-            }
-            if (!windows.some((e) => e[0] === x && e[1] === y)) {
-              windows.push([x, y]);
-              build[y][x] = "█";
-            }
-          }
-          this.arr = build;
-        }
-      }
-      self.BUILDINGS = {
-        ARR: new Array(8)
-          .fill(null)
-          .map(() => new Array(self.ROAD[0].length).fill(" ")),
-        QUEUE: [],
-        async RENDER() {
-          return new Promise((resolve, reject) => {
-            const result = [];
-            this.ARR = this.ARR.map((e) => {
-              return e.map(() => " ");
-            });
-            this.QUEUE.forEach((e) => {
-              if (e.arr.OVER(this.ARR, e.x, e.y) === true) result.push(e);
-            });
-            this.QUEUE = result;
-            self.RENDERQUEUE = true;
-            resolve();
-          });
-        },
-        async ADD(b) {
-          return new Promise((resolve, reject) => {
-            const last = self.BUILDINGS.QUEUE.at(-1);
-            b.x = last ? last.x + last.width + 2 : 0;
-            b.y = self.BUILDINGS.ARR.length - b.height;
-            self.BUILDINGS.QUEUE.push(b);
-            resolve();
-          });
-        },
-        async MOVE(dir) {
-          return new Promise((resolve, reject) => {
-            self.BUILDINGS.QUEUE.forEach((e) => (e.x += dir));
-            resolve();
-          });
-        },
-        async CLOCK(dir, [wMin, wMax], [winMin, winMax]) {
-          await this.ADD(
-            new Building(
-              self.RANDOM(3, this.ARR.length),
-              self.RANDOM(wMin, wMax),
-              self.RANDOM(winMin, winMax)
-            )
-          );
-          await this.MOVE(dir);
-          await this.RENDER();
-        },
-      };
-    }
-    //lane lookup
-    {
+      self.BUILDINGS.ARR = new Array(8)
+        .fill(null)
+        .map(() => new Array(self.ROAD[0].length).fill(" "));
+      //lane lookup
       self.LANELOOKUP.sets = new Array(self.LANES)
         .fill(null)
         .map((_, u) =>
@@ -857,59 +846,21 @@ class Game {
         );
       self.LANELOOKUP.list = new Array(self.ROAD.length)
         .fill(null)
-        .map((_, i) => {
-          return {
-            index: i,
-            set: self.LANELOOKUP.sets.indexOf(
-              self.LANELOOKUP.sets.find((v) => v.includes(i))
-            ),
-          };
-        });
+        .map((_, i) => ({
+          index: i,
+          set: self.LANELOOKUP.sets.indexOf(
+            self.LANELOOKUP.sets.find((v) => v.includes(i))
+          ),
+        }));
     }
     //user control
     {
-      class USER extends self.BASECLASS {
-        constructor(x, y, MOVESPEED, USER) {
-          super(x, y, MOVESPEED, USER);
-          this.template = Object.freeze(
-            new self.TMPLS[self.USERPROPS[self.LEVEL - 1]](0, 0, 0, null)
-              .template
-          );
-          this.SETUP(this, false);
-        }
-        set x(v) {
-          this._x = v;
-          this.SETUP(this, true);
-        }
-        get x() {
-          return this._x;
-        }
-        set y(v) {
-          this._y = v;
-          this.SETUP(this, true);
-        }
-        get y() {
-          return this._y;
-        }
-        collide() {
-          const sameLane = self.QUEUE.INLANE(this.y).filter(
-            (e) => e.USER !== true
-          );
-          if (sameLane.length > 0) {
-            sameLane.PROPSORT("x");
-            const first = sameLane[0];
-            const fB = { BR: first.bounds.BR, BL: first.bounds.BL };
-            const tB = { BR: this.bounds.BR, BL: this.bounds.BL };
-            for (let p in fB) {
-              const b = fB[p];
-              if (b.y == tB.BR.y) {
-                if (b.x <= tB.BR.x && b.x >= tB.BL.x) self.SCORE.lives--;
-              }
-            }
-          }
-        }
-      }
-      self.USER = new USER(4, self.LANELOOKUP.inLane(1, "middle"), 0, true);
+      self.USER = new self.USERCLASS(
+        4,
+        self.LANELOOKUP.inLane(1, "middle"),
+        0,
+        true
+      );
       self.QUEUE.ARR.push(self.USER);
     }
     // tick and game run
@@ -926,7 +877,7 @@ class Game {
         self.ROAD.SHIFT(self.MOVESPEED);
         if (self.KEYS.has(self.KEYCONTROLS[0])) self.USER.y--;
         if (self.KEYS.has(self.KEYCONTROLS[1])) self.USER.y++;
-        if (self.RENDERQUEUE) await RENDER();
+        if (self.RENDERQUEUE) await self.RENDER(self, true);
         if (tickCounter % Math.round(addOffset / self.RENDERSPEED) === 0)
           self.QUEUE.ADD();
         if (tickCounter % Math.round(1000 / self.RENDERSPEED) === 0) {
@@ -944,52 +895,53 @@ class Game {
   GAMEEND(self) {
     clearInterval(self.TICK);
     setTimeout(async () => {
-      function WAIT(t) {
-        return new Promise((resolve, reject) => setTimeout(() => resolve(), t));
-      }
       let i = 0;
       let shift = 0;
       self.SCORE.LOC.textContent = "Game Over";
       let tempLength, outTemp;
       self.TICK = new Promise((resolve, reject) => {
-        const intervalID = setInterval(() => {
-          let temp = [
-            ...self.BUILDINGS.ARR,
-            ...self.ROAD,
-            ...new Array(self.BUILDINGS.ARR.length - 3)
-              .fill(null)
-              .map(() => new Array(self.ROAD[0].length).fill("░")),
-          ];
-          if (i <= temp.length) {
-            for (let q = 0; q < i; q++) {
-              const arr = new Array(1).fill(
-                new Array(self.GAMEWIDTH).fill("^")
-              );
-              arr.OVER(temp, 0, q);
+        try {
+          const intervalID = setInterval(() => {
+            let temp = [
+              ...self.BUILDINGS.ARR,
+              ...self.ROAD,
+              ...new Array(self.BUILDINGS.ARR.length - 3)
+                .fill(null)
+                .map(() => new Array(self.ROAD[0].length).fill("░")),
+            ];
+            if (i <= temp.length) {
+              for (let q = 0; q < i; q++) {
+                const arr = new Array(1).fill(
+                  new Array(self.GAMEWIDTH).fill("^")
+                );
+                arr.OVER(temp, 0, q);
+              }
+            } else if (i > temp.length) {
+              temp = new Array(temp.length)
+                .fill(null)
+                .map(() => new Array(self.ROAD[0].length).fill("^"));
+              for (let q = 0; q < i - temp.length; q++) {
+                const arr = new Array(1).fill(
+                  new Array(self.GAMEWIDTH).fill(" ")
+                );
+                arr.OVER(temp, 0, q);
+              }
+              if (i >= temp.length * 2) {
+                clearInterval(intervalID);
+                outTemp = temp;
+                resolve();
+              }
             }
-          } else if (i > temp.length) {
-            temp = new Array(temp.length)
-              .fill(null)
-              .map(() => new Array(self.ROAD[0].length).fill("^"));
-            for (let q = 0; q < i - temp.length; q++) {
-              const arr = new Array(1).fill(
-                new Array(self.GAMEWIDTH).fill(" ")
-              );
-              arr.OVER(temp, 0, q);
-            }
-            if (i >= temp.length * 2) {
-              clearInterval(intervalID);
-              outTemp = temp;
-              resolve();
-            }
-          }
-          temp.splice(0, 0, new Array(self.ROAD[0].length).fill("‾"));
-          temp.push(new Array(self.ROAD[0].length).fill("‾"));
-          tempLength = temp.length;
-          self.RENDERTO.innerHTML = temp.DOCPRINT();
-          i++;
-          shift++;
-        }, self.RENDERSPEED);
+            temp.splice(0, 0, new Array(self.ROAD[0].length).fill("‾"));
+            temp.push(new Array(self.ROAD[0].length).fill("‾"));
+            tempLength = temp.length;
+            self.RENDERTO.innerHTML = temp.DOCPRINT();
+            i++;
+            shift++;
+          }, self.RENDERSPEED);
+        } catch (error) {
+          reject(error);
+        }
       });
       await self.TICK;
       const endArr = [
@@ -1005,7 +957,7 @@ class Game {
         Math.floor(self.ROAD[0].length / 2) - Math.floor(nextArr[0].length / 2);
       endArr.OVER(outTemp, centerX, centerY);
       self.RENDERTO.innerHTML = outTemp.DOCPRINT();
-      await WAIT(1000);
+      await self.WAIT(1000);
       nextArr.OVER(outTemp, nextX, centerY + 2);
       self.RENDERTO.innerHTML = outTemp.DOCPRINT();
       function enterRESET(e) {
@@ -1030,6 +982,46 @@ class Game {
       }
       window.addEventListener("keydown", enterRESET);
     }, self.GENSPEED);
+  }
+  //utilities
+  RANDOM(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+  RENDER(self, controlUser = false) {
+    return new Promise((resolve, reject) => {
+      try {
+        const tempROAD = Array.from({ length: self.ROAD.length }, (_, i) => [
+          ...self.ROAD[i],
+        ]);
+        const temp = [
+          ...self.BUILDINGS.ARR.map((e) => [...e]),
+          ...tempROAD,
+          ...new Array(self.BUILDINGS.ARR.length - 3)
+            .fill(null)
+            .map(() => new Array(self.ROAD[0].length).fill("░")),
+        ];
+        if (controlUser) {
+          self.USER.y = Math.min(
+            self.USER.y,
+            self.BUILDINGS.ARR.length +
+              self.ROAD.length -
+              self.USER.template.length
+          );
+          self.USER.y = Math.max(self.BUILDINGS.ARR.length - 1, self.USER.y);
+          self.RENDERQUEUE = false;
+        }
+        self.QUEUE.RUN(temp);
+        temp.splice(0, 0, new Array(self.ROAD[0].length).fill("‾"));
+        temp.push(new Array(self.ROAD[0].length).fill("‾"));
+        self.RENDERTO.innerHTML = temp.DOCPRINT();
+        resolve();
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+  WAIT(t) {
+    return new Promise((resolve) => setTimeout(resolve, t));
   }
 }
 const myGame = new Game(
