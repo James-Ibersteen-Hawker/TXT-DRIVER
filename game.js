@@ -4,7 +4,9 @@ class Game {
   LANES;
   GAMEWIDTH;
   RENDERTO;
-  SPEED;
+  MINRENDERSPEED;
+  MAXRENDERSPEED;
+  GENSPEED;
   KEYCONTROLS;
   MOVESPEED;
   LIVES;
@@ -18,7 +20,9 @@ class Game {
     LANES,
     GAMEWIDTH,
     RENDERTO,
-    SPEED,
+    MINRENDERSPEED,
+    MAXRENDERSPEED,
+    GENSPEED,
     KEYCONTROLS,
     MOVESPEED,
     MAXSCORE,
@@ -146,7 +150,6 @@ class Game {
           return this._y;
         }
       }),
-      (this.SPEED = SPEED),
       (this.ROAD = null),
       (this.BUILDINGS = {
         ARR: [],
@@ -178,9 +181,13 @@ class Game {
       (this.MINSPEED = MINSPEED),
       (this.MAXSPEED = MAXSPEED),
       (this.TYPETIME = TYPETIME),
+      (this.MINRENDERSPEED = MINRENDERSPEED),
+      (this.MAXRENDERSPEED = MAXRENDERSPEED),
+      (this.GENSPEED = GENSPEED),
       (this.MAXLEVEL = null),
       (this.RENDERSPEED = 0),
       (this.USERPROPS = []),
+      (this.incr = null),
       (this.USERTMPLS = []),
       (this.SPEEDKEY = SPEEDKEY || "z"),
       (this.SCROLLKEYS = SCROLLKEYS),
@@ -280,6 +287,7 @@ class Game {
     this.SETUP(self);
   }
   async SETUP(self) {
+    self.RENDERTO.innerHTML = "";
     Array.prototype.OVER = function (target, x, y) {
       if (
         x < 0 - this[0].length ||
@@ -407,7 +415,13 @@ class Game {
     });
     self.RENDERTO.insertAdjacentElement("beforebegin", self.SCORE.LOC);
     self.LEVEL = Math.min(self.MAXLEVEL, self.LEVEL);
-    self.RENDERSPEED = self.SPEED * (1 / self.LEVEL);
+    self.incr = Math.round(
+      (self.MINSPEED - self.MAXSPEED) / (self.MAXLEVEL - 1)
+    );
+    const renderIncr = Math.round(
+      (self.MINRENDERSPEED - self.MAXRENDERSPEED) / (self.MAXLEVEL - 1)
+    );
+    self.RENDERSPEED = self.MINRENDERSPEED - renderIncr * self.LEVEL;
     self.PLAY(self);
   }
   async OPEN(self) {
@@ -515,8 +529,8 @@ class Game {
       try {
         self.RENDERTO.append(h1);
         await ">>> Car.TXT >>>".TYPE(h1);
-        self.RENDERTO.append(h3);
         await WAIT(500);
+        self.RENDERTO.append(h3);
         h3.textContent = "  Play";
         await h3.SELECT(selectStep, true, async () => {
           h1.textContent = "";
@@ -901,11 +915,8 @@ class Game {
     let tickCounter = 0;
     let pointCounter = 0;
     const everyPoint = 2;
-    const incr = Math.round(
-      (self.MINSPEED - self.MAXSPEED) / (self.MAXLEVEL - 1)
-    );
     const addOffset =
-      self.MINSPEED - incr * (self.LEVEL - 1) - self.ROAD.length * 10;
+      self.MINSPEED - self.incr * (self.LEVEL - 1) - self.ROAD.length * 10;
     let tickFlag = true;
     self.TICK = setInterval(async () => {
       if (tickFlag === true) {
@@ -994,15 +1005,16 @@ class Game {
         }
       }
       window.addEventListener("keydown", enterRESET);
-    }, self.SPEED);
+    }, self.GENSPEED);
   }
 }
-
 const myGame = new Game(
   null,
   null,
   70,
   document.querySelector("#game"),
+  80,
+  40,
   80,
   ["ArrowUp", "ArrowDown"],
   -1,
@@ -1014,5 +1026,4 @@ const myGame = new Game(
   150,
   ["ArrowRight", "ArrowLeft"]
 );
-
 //good speed is 100 or 80
