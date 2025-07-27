@@ -94,13 +94,16 @@ class Game {
           else indexes.push(...[y - 1, y, y + 1]);
           indexes.forEach((e) => {
             const lane = inself
-              .INLANE(y)
+              .INLANE(e)
               .filter(
                 (a) =>
                   a.USER !== true &&
                   (self.MOVESPEED < 0 ? a.x > self.USER.x : a.x < self.USER.x)
               );
-            console.log(lane);
+            lane.PROPSORT("x");
+            if (self.MOVESPEED.sign() === -1) {
+              
+            }
           });
         },
       }),
