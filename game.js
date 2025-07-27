@@ -177,7 +177,6 @@ class Game {
       (this.USER = undefined),
       (this.KEYCONTROLS = KEYCONTROLS),
       (this.KEYS = new Set()),
-      (this.BUILDINGS = []),
       (this.MINSPEED = MINSPEED),
       (this.MAXSPEED = MAXSPEED),
       (this.TYPETIME = TYPETIME),
@@ -363,10 +362,12 @@ class Game {
                       throw new Error(`${vDiff} !== integer`);
                     const fakeX =
                       m < 0 ? this.x : this.x + this.template[0].length;
-                    const dist = Math.abs(last.x - fakeX);
+                    const dist = Math.aabs(last.x - fakeX);
                     const dT = Math.abs(Math.ceil((dist / vDiff) * (2 / 3)));
                     const step = Math.ceil(Math.abs(vDiff / dT));
-                    const xs = [lB.TR.x, lB.TL.x];
+                    const xs = new Array(lB.TR.x - lB.TL.x + 1)
+                      .fill(null)
+                      .map((_, i) => lB.TR.x + i);
                     if (xs.includes(this.x + m.sign()) && tM !== lM) tM = lM;
                     if (isFinite(step)) tM -= step * tM.sign();
                   }
@@ -943,6 +944,9 @@ class Game {
   GAMEEND(self) {
     clearInterval(self.TICK);
     setTimeout(async () => {
+      function WAIT(t) {
+        return new Promise((resolve, reject) => setTimeout(() => resolve(), t));
+      }
       let i = 0;
       let shift = 0;
       self.SCORE.LOC.textContent = "Game Over";
@@ -993,15 +997,35 @@ class Game {
           ""
         ),
       ];
+      const nextArr = ["Press Enter to continue".split("")];
       const centerY = Math.floor((tempLength - 1) / 2);
       const centerX =
         Math.floor(self.ROAD[0].length / 2) - Math.floor(endArr[0].length / 2);
+      const nextX =
+        Math.floor(self.ROAD[0].length / 2) - Math.floor(nextArr[0].length / 2);
       endArr.OVER(outTemp, centerX, centerY);
+      self.RENDERTO.innerHTML = outTemp.DOCPRINT();
+      await WAIT(1000);
+      nextArr.OVER(outTemp, nextX, centerY + 2);
       self.RENDERTO.innerHTML = outTemp.DOCPRINT();
       function enterRESET(e) {
         if (e.key === "Enter") {
-          alert("reset");
+          self.BUILDINGS.ARR = [];
+          self.ROAD = [];
+          self.USER = undefined;
+          self.SCORE._lives = null;
+          self.SCORE._time = 0;
+          self.LIVES = null;
+          self.QUEUE.ARR = [];
+          self.SCORE._points = 0;
+          self.LEVEL = null;
+          self.LANES = null;
+          self.TMPLS = {};
+          self.USERTMPLS = [];
+          self.USERPROPS = [];
+          self.SCORE.LOC.remove();
           window.removeEventListener("keydown", enterRESET);
+          self.SETUP(self);
         }
       }
       window.addEventListener("keydown", enterRESET);
@@ -1011,7 +1035,7 @@ class Game {
 const myGame = new Game(
   null,
   null,
-  70,
+  120,
   document.querySelector("#game"),
   80,
   40,
