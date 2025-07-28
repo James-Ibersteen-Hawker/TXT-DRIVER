@@ -51,7 +51,7 @@ class Game {
           this.ARR.forEach((e) => {
             if (e !== self.USER) e.MOVE();
           });
-          this.CHECKLOCK();
+          this.CHECKLOCK(self.USER.y);
         },
         ADD(b = false) {
           if (!b) {
@@ -86,25 +86,33 @@ class Game {
           return this.ARR.filter((e) => e.y === y);
         },
         CHECKLOCK(y) {
-          const indexes = [];
           const inself = this;
-          if (y - 1 - self.BUILDINGS.length === 0) indexes.push(...[y, y + 1]);
-          else if (y + 1 === self.ROAD.length + self.BUILDINGS.length)
-            indexes.push(...[y - 1, y]);
-          else indexes.push(...[y - 1, y, y + 1]);
-          indexes.forEach((e) => {
-            const lane = inself
-              .INLANE(e)
-              .filter(
-                (a) =>
-                  a.USER !== true &&
-                  (self.MOVESPEED < 0 ? a.x > self.USER.x : a.x < self.USER.x)
-              );
-            lane.PROPSORT("x");
-            if (self.MOVESPEED.sign() === -1) {
-              
+          const U = self.USER;
+          const indexes = [y - 1, y, y + 1, y + 2];
+          if (y + 2 > self.BUILDINGS.length + self.ROAD.length - 1)
+            indexes[indexes.length - 1] = y - 2;
+          const cars = [];
+          const range = U.template[0].length * 3;
+          const m = self.MOVESPEED;
+          indexes.forEach((index) => {
+            let LANE = inself
+              .INLANE(index)
+              .filter((e) => !e.USER && (m < 0 ? e.x > U.x : e.x < U.x));
+            if (LANE.length > 0) {
+              LANE.PROPSORT("x");
+              LANE = LANE.filter((e) => Math.abs(U.x - e.x) <= range);
+              if (LANE.length > 0) cars.push(m < 0 ? LANE[0] : LANE.at(-1));
             }
           });
+          if (cars.length == indexes.length) {
+            console.log("force kill!", cars);
+            const delIndex = self.RANDOM(0, cars.length - 2);
+            const carsDead = cars.slice(delIndex, delIndex + 2);
+            carsDead.forEach((e) => {
+              const index = inself.ARR.indexOf(e);
+              inself.ARR.splice(index, 1);
+            });
+          }
         },
       }),
       (this.RENDERQUEUE = false),
@@ -271,7 +279,7 @@ class Game {
           }
         },
       }),
-      (this.USER = undefined),
+      (this.USER = null),
       (this.USERCLASS = class USER extends self.BASECLASS {
         constructor(x, y, MOVESPEED, USER) {
           super(x, y, MOVESPEED, USER);
@@ -296,9 +304,7 @@ class Game {
           return this._y;
         }
         collide() {
-          const sameLane = self.QUEUE.INLANE(this.y).filter(
-            (e) => e.USER !== true
-          );
+          const sameLane = self.QUEUE.INLANE(this.y).filter((e) => !e.USER);
           if (sameLane.length > 0) {
             sameLane.PROPSORT("x");
             const first = sameLane[0];
@@ -447,8 +453,8 @@ class Game {
       if (i !== a.length - 1) {
         e.forEach(([k, v]) => {
           self.TMPLS[k] = class extends self.BASECLASS {
-            constructor(x, y, MOVESPEED) {
-              super(x, y, MOVESPEED);
+            constructor(x, y, MOVESPEED, USER) {
+              super(x, y, MOVESPEED, USER);
               this.template = Object.freeze(Array.from(v).DIV(2));
               this.SETUP(this, false);
             }
@@ -456,9 +462,7 @@ class Game {
               this.x += this.MOVESPEED;
             }
             DODGE() {
-              let sameLane = self.QUEUE.INLANE(this.y).filter(
-                (e) => e.USER !== true
-              );
+              let sameLane = self.QUEUE.INLANE(this.y).filter((e) => !e.USER);
               if (sameLane.length > 0) {
                 const m = self.MOVESPEED;
                 sameLane = sameLane.filter((e) =>
@@ -648,7 +652,7 @@ class Game {
         await h3.SELECT(selectStep, true, async () => {
           h1.textContent = "";
           h3.textContent = "";
-          speedh3.remove()
+          speedh3.remove();
           await ">>> Select Difficulty >>>".TYPE(h1);
           await self.WAIT(500);
           h3.textContent = `- Use ${self.SCROLLKEYS[0]} and ${self.SCROLLKEYS[1]} to scroll. Press Enter to select. -`;
@@ -881,6 +885,13 @@ class Game {
         if (self.KEYS.has(self.KEYCONTROLS[0])) self.USER.y--;
         if (self.KEYS.has(self.KEYCONTROLS[1])) self.USER.y++;
         if (self.RENDERQUEUE) await self.RENDER(self, true);
+        // if (tickCounter === 0) {
+        //   for (let i = 0; i < 5; i++) {
+        //     self.QUEUE.ADD(
+        //       new self.TMPLS.car(self.ROAD[0].length, i + 2, -3, false)
+        //     );
+        //   }
+        // }
         if (tickCounter % Math.round(addOffset / self.RENDERSPEED) === 0)
           self.QUEUE.ADD();
         if (tickCounter % Math.round(1000 / self.RENDERSPEED) === 0) {
@@ -1030,7 +1041,7 @@ class Game {
 const myGame = new Game(
   null,
   null,
-  120,
+  70,
   document.querySelector("#game"),
   80,
   40,
