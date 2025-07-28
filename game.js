@@ -88,12 +88,16 @@ class Game {
         CHECKLOCK(y) {
           const inself = this;
           const U = self.USER;
-          const indexes = [y - 1, y, y + 1, y + 2];
-          if (y + 2 > self.BUILDINGS.length + self.ROAD.length - 1)
-            indexes[indexes.length - 1] = y - 2;
+          const indexes = [y - 1, y, y + 1];
           const cars = [];
+          let number = 0;
           const range = U.template[0].length * 3;
           const m = self.MOVESPEED;
+          if (
+            y === self.BUILDINGS.length ||
+            y === self.BUILDINGS.length + self.ROAD.length - 1
+          )
+            number++;
           indexes.forEach((index) => {
             let LANE = inself
               .INLANE(index)
@@ -101,10 +105,13 @@ class Game {
             if (LANE.length > 0) {
               LANE.PROPSORT("x");
               LANE = LANE.filter((e) => Math.abs(U.x - e.x) <= range);
-              if (LANE.length > 0) cars.push(m < 0 ? LANE[0] : LANE.at(-1));
+              if (LANE.length > 0) {
+                cars.push(m < 0 ? LANE[0] : LANE.at(-1));
+                number++;
+              }
             }
           });
-          if (cars.length == indexes.length) {
+          if (number === indexes.length || cars.length === indexes.length) {
             console.log("force kill!", cars);
             const delIndex = self.RANDOM(0, cars.length - 2);
             const carsDead = cars.slice(delIndex, delIndex + 2);
