@@ -91,11 +91,11 @@ class Game {
           const indexes = [y - 1, y, y + 1];
           const cars = [];
           let number = 0;
-          const range = U.template[0].length * 3;
+          const range = U.template[0].length * 2.3;
           const m = self.MOVESPEED;
           if (
-            y === self.BUILDINGS.length ||
-            y === self.BUILDINGS.length + self.ROAD.length - 1
+            y === self.BUILDINGS.ARR.length ||
+            y === self.BUILDINGS.ARR.length + self.ROAD.length - 2
           )
             number++;
           indexes.forEach((index) => {
@@ -847,26 +847,23 @@ class Game {
         });
       };
     }
-    //building generation
-    {
-      self.BUILDINGS.ARR = new Array(8)
-        .fill(null)
-        .map(() => new Array(self.ROAD[0].length).fill(" "));
-      //lane lookup
-      self.LANELOOKUP.sets = new Array(self.LANES)
-        .fill(null)
-        .map((_, u) =>
-          new Array(seg.length).fill(null).map((_, i) => i + u * seg.length)
-        );
-      self.LANELOOKUP.list = new Array(self.ROAD.length)
-        .fill(null)
-        .map((_, i) => ({
-          index: i,
-          set: self.LANELOOKUP.sets.indexOf(
-            self.LANELOOKUP.sets.find((v) => v.includes(i))
-          ),
-        }));
-    }
+    self.BUILDINGS.ARR = new Array(8)
+      .fill(null)
+      .map(() => new Array(self.ROAD[0].length).fill(" "));
+    //lane lookup
+    self.LANELOOKUP.sets = new Array(self.LANES)
+      .fill(null)
+      .map((_, u) =>
+        new Array(seg.length).fill(null).map((_, i) => i + u * seg.length)
+      );
+    self.LANELOOKUP.list = new Array(self.ROAD.length)
+      .fill(null)
+      .map((_, i) => ({
+        index: i,
+        set: self.LANELOOKUP.sets.indexOf(
+          self.LANELOOKUP.sets.find((v) => v.includes(i))
+        ),
+      }));
     //user control
     {
       self.USER = new self.USERCLASS(
@@ -893,9 +890,14 @@ class Game {
         if (self.KEYS.has(self.KEYCONTROLS[1])) self.USER.y++;
         if (self.RENDERQUEUE) await self.RENDER(self, true);
         // if (tickCounter === 0) {
-        //   for (let i = 0; i < 5; i++) {
+        //   for (let i = 0; i < 2; i++) {
         //     self.QUEUE.ADD(
-        //       new self.TMPLS.car(self.ROAD[0].length, i + 2, -3, false)
+        //       new self.TMPLS.car(
+        //         self.ROAD[0].length,
+        //         self.ROAD.length - i - 2,
+        //         -3,
+        //         false
+        //       )
         //     );
         //   }
         // }
