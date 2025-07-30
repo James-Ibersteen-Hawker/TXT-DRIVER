@@ -600,7 +600,9 @@ class Game {
       HTMLElement.prototype.SELECT = async function (
         step = 100,
         hasCall = false,
-        callBack = false
+        callBack = false,
+        cancelKey,
+        cancelCallback
       ) {
         const ref = this;
         const save = ref.textContent.split("");
@@ -622,6 +624,10 @@ class Game {
                     await callBack();
                     resolve();
                   } else reject("No provided function");
+                } else if (e.key === cancelKey && cancelKey) {
+                  if (cancelCallback) await cancelCallback();
+                  clearInterval(int);
+                  resolve;
                 }
               }
               window.addEventListener("keydown", CTRLFC);
@@ -746,6 +752,10 @@ class Game {
         selectionMenu.innerHTML = boxArr.DOCPRINT(false);
         boxArrRef["1"] = true;
         let activeI = 1;
+        const subH3 = document.createElement("h3");
+        self.RENDERTO.append(subH3);
+        const undo = document.createElement("h3");
+        self.RENDERTO.append(undo);
         function scrollLevels(e) {
           if (e.key === self.SCROLLKEYS[0]) {
             boxArrRef[`${activeI}`] = false;
@@ -760,7 +770,8 @@ class Game {
           }
         }
         window.addEventListener("keydown", scrollLevels);
-        await new Promise(async (resolve, reject) => {
+        //make loopable code
+        await new Promise(async (resolveSelector, rejectSelector) => {
           try {
             async function CTRLFC(e) {
               if (e.key === "Enter") {
@@ -770,18 +781,33 @@ class Game {
                 self.LIVES = boxArrRef[`${activeI}Catalogue`].lives;
                 self.LANES = boxArrRef[`${activeI}Catalogue`].lanes;
                 self.SCORE._lives = self.LIVES;
-                const subH3 = document.createElement("h3");
-                self.RENDERTO.append(subH3);
                 await `- Difficulty ${self.LEVEL} selected. -`.TYPE(subH3);
-                resolve();
+                await self.WAIT(200);
+                undo.textContent = "  Undo Selection? Press X to cancel";
+                await undo.SELECT(
+                  selectStep,
+                  true,
+                  async function () {
+                    window.addEventListener("keydown", scrollLevels);
+                    window.addEventListener("keydown", CTRLFC);
+                    subH3.textContent = "";
+                    undo.textContent = "";
+                  },
+                  "x",
+                  async function () {
+                    window.removeEventListener("keydown", scrollLevels);
+                    window.removeEventListener("keydown", CTRLFC);
+                    undo.textContent = "  Undo Selection? Press X to cancel";
+                    resolveSelector();
+                  }
+                );
               }
             }
             window.addEventListener("keydown", CTRLFC);
           } catch (error) {
-            reject(error);
+            rejectSelector(error);
           }
         });
-        await self.WAIT(500);
         const play = document.createElement("h2");
         self.RENDERTO.append(play);
         play.textContent = "  Play";
@@ -877,30 +903,19 @@ class Game {
     // tick and game run
     let tickCounter = 0;
     let pointCounter = 0;
-    const everyPoint = 2;
+    const everyPoint = 1;
     const addOffset =
       self.MINSPEED - self.incr * (self.LEVEL - 1) - self.ROAD.length * 10;
     let tickFlag = true;
     self.TICK = setInterval(async () => {
-      if (tickFlag === true) {
+      if (tickFlag) {
         tickFlag = false;
         await self.BUILDINGS.CLOCK(self.MOVESPEED, [3, 5], [2, 6]);
         self.ROAD.SHIFT(self.MOVESPEED);
         if (self.KEYS.has(self.KEYCONTROLS[0])) self.USER.y--;
         if (self.KEYS.has(self.KEYCONTROLS[1])) self.USER.y++;
         if (self.RENDERQUEUE) await self.RENDER(self, true);
-        // if (tickCounter === 0) {
-        //   for (let i = 0; i < 2; i++) {
-        //     self.QUEUE.ADD(
-        //       new self.TMPLS.car(
-        //         self.ROAD[0].length,
-        //         self.ROAD.length - i - 2,
-        //         -3,
-        //         false
-        //       )
-        //     );
-        //   }
-        // }
+        self.USER.collide();
         if (tickCounter % Math.round(addOffset / self.RENDERSPEED) === 0)
           self.QUEUE.ADD();
         if (tickCounter % Math.round(1000 / self.RENDERSPEED) === 0) {
@@ -909,7 +924,6 @@ class Game {
         }
         if (tickCounter > 1000) tickCounter = 0;
         if (pointCounter > 100) pointCounter = 0;
-        self.USER.collide();
         tickCounter++;
         tickFlag = true;
       }
@@ -1057,7 +1071,7 @@ const myGame = new Game(
   80,
   ["ArrowUp", "ArrowDown"],
   -1,
-  20,
+  30,
   null,
   600,
   800,
