@@ -15,6 +15,7 @@ class Game {
   SPEEDKEY;
   TYPETIME;
   SCROLLKEYS;
+  SKIPKEY;
   constructor(
     LEVEL,
     LANES,
@@ -31,7 +32,8 @@ class Game {
     MINSPEED,
     SPEEDKEY,
     TYPETIME,
-    SCROLLKEYS
+    SCROLLKEYS,
+    SKIPKEY
   ) {
     const self = this;
     (this.LEVEL = LEVEL),
@@ -41,7 +43,7 @@ class Game {
       (this.RENDERTO = RENDERTO),
       (this.QUEUE = {
         ARR: [],
-        RUN(loc) {
+        RUN(loc, checkBool) {
           this.ARR.PROPSORT("z");
           const newQueue = [];
           this.ARR.forEach((e) => {
@@ -51,7 +53,7 @@ class Game {
           this.ARR.forEach((e) => {
             if (e !== self.USER) e.MOVE();
           });
-          this.CHECKLOCK(self.USER.y);
+          this.CHECKLOCK(self.USER.y, checkBool);
         },
         ADD(b = false) {
           if (!b) {
@@ -85,40 +87,42 @@ class Game {
         INLANE(y) {
           return this.ARR.filter((e) => e.y === y);
         },
-        CHECKLOCK(y) {
-          const inself = this;
-          const U = self.USER;
-          const indexes = [y - 1, y, y + 1];
-          const cars = [];
-          let number = 0;
-          const range = U.template[0].length * 2.3;
-          const m = self.MOVESPEED;
-          if (
-            y === self.BUILDINGS.ARR.length ||
-            y === self.BUILDINGS.ARR.length + self.ROAD.length - 2
-          )
-            number++;
-          indexes.forEach((index) => {
-            let LANE = inself
-              .INLANE(index)
-              .filter((e) => !e.USER && (m < 0 ? e.x > U.x : e.x < U.x));
-            if (LANE.length > 0) {
-              LANE.PROPSORT("x");
-              LANE = LANE.filter((e) => Math.abs(U.x - e.x) <= range);
+        CHECKLOCK(y, bool = true) {
+          if (bool) {
+            const inself = this;
+            const U = self.USER;
+            const indexes = [y - 1, y, y + 1];
+            const cars = [];
+            let number = 0;
+            const range = U.template[0].length * 2.3;
+            const m = self.MOVESPEED;
+            if (
+              y === self.BUILDINGS.ARR.length ||
+              y === self.BUILDINGS.ARR.length + self.ROAD.length - 2
+            )
+              number++;
+            indexes.forEach((index) => {
+              let LANE = inself
+                .INLANE(index)
+                .filter((e) => !e.USER && (m < 0 ? e.x > U.x : e.x < U.x));
               if (LANE.length > 0) {
-                cars.push(m < 0 ? LANE[0] : LANE.at(-1));
-                number++;
+                LANE.PROPSORT("x");
+                LANE = LANE.filter((e) => Math.abs(U.x - e.x) <= range);
+                if (LANE.length > 0) {
+                  cars.push(m < 0 ? LANE[0] : LANE.at(-1));
+                  number++;
+                }
               }
-            }
-          });
-          if (number === indexes.length || cars.length === indexes.length) {
-            console.log("force kill!", cars);
-            const delIndex = self.RANDOM(0, cars.length - 2);
-            const carsDead = cars.slice(delIndex, delIndex + 2);
-            carsDead.forEach((e) => {
-              const index = inself.ARR.indexOf(e);
-              inself.ARR.splice(index, 1);
             });
+            if (number === indexes.length || cars.length === indexes.length) {
+              console.log("force kill!", cars);
+              const delIndex = self.RANDOM(0, cars.length - 2);
+              const carsDead = cars.slice(delIndex, delIndex + 2);
+              carsDead.forEach((e) => {
+                const index = inself.ARR.indexOf(e);
+                inself.ARR.splice(index, 1);
+              });
+            }
           }
         },
       }),
@@ -290,6 +294,7 @@ class Game {
       (this.USERCLASS = class USER extends self.BASECLASS {
         constructor(x, y, MOVESPEED, USER) {
           super(x, y, MOVESPEED, USER);
+          this.isColliding = false;
           this.template = Object.freeze(
             new self.TMPLS[self.USERPROPS[self.LEVEL - 1]](0, 0, 0, null)
               .template
@@ -311,19 +316,23 @@ class Game {
           return this._y;
         }
         collide() {
-          const sameLane = self.QUEUE.INLANE(this.y).filter((e) => !e.USER);
-          if (sameLane.length > 0) {
-            sameLane.PROPSORT("x");
-            const first = sameLane[0];
-            const fB = { BR: first.bounds.BR, BL: first.bounds.BL };
-            const tB = { BR: this.bounds.BR, BL: this.bounds.BL };
-            for (let p in fB) {
-              const b = fB[p];
-              if (b.y == tB.BR.y) {
-                if (b.x <= tB.BR.x && b.x >= tB.BL.x) self.SCORE.lives--;
+          if (!this.isColliding) {
+            this.isColliding = true;
+            const sameLane = self.QUEUE.INLANE(this.y).filter((e) => !e.USER);
+            if (sameLane.length > 0) {
+              sameLane.PROPSORT("x");
+              const first = sameLane[0];
+              const fB = { BR: first.bounds.BR, BL: first.bounds.BL };
+              const tB = { BR: this.bounds.BR, BL: this.bounds.BL };
+              for (let p in fB) {
+                const b = fB[p];
+                if (b.y == tB.BR.y) {
+                  if (b.x <= tB.BR.x && b.x >= tB.BL.x) self.SCORE.lives--;
+                }
               }
             }
-          }
+            setTimeout(() => (this.isColliding = false), 10);
+          } else return;
         }
       }),
       (this.KEYCONTROLS = KEYCONTROLS),
@@ -337,10 +346,12 @@ class Game {
       (this.MAXLEVEL = null),
       (this.RENDERSPEED = 0),
       (this.USERPROPS = []),
+      (this.ISRESET = false),
       (this.incr = null),
       (this.USERTMPLS = []),
       (this.SPEEDKEY = SPEEDKEY || "z"),
       (this.SCROLLKEYS = SCROLLKEYS),
+      (this.SKIPKEY = SKIPKEY),
       (this.SCORE = {
         _time: 0,
         _points: 0,
@@ -372,7 +383,7 @@ class Game {
             self.TICK = setInterval(async () => {
               let truckCount = 0;
               let truckOverUSER = 0;
-              await self.RENDER(self, false);
+              await self.RENDER(self, false, false);
               self.QUEUE.ARR.forEach((e) => {
                 if (self.MOVESPEED < 0) {
                   if (e.bounds.TR.x < 0) truckCount++;
@@ -398,6 +409,8 @@ class Game {
           const hold = inself.lives;
           inself._lives = v;
           let callback;
+          if (inself._lives < 0)
+            throw new Error("Lives Error! Game Overacceleration!");
           if (hold > inself.lives && inself.lives > 0) {
             callback = self.PLAY;
             inself.points = 0;
@@ -561,7 +574,7 @@ class Game {
       let mult = 1;
       let speedkey = false;
       function Time() {
-        return time * (1 / mult);
+        return time * mult;
       }
       function* laneCounter() {
         let start = 3;
@@ -576,7 +589,15 @@ class Game {
         return new Promise(async (resolveAll, reject) => {
           try {
             const split = inself.split("");
+            let skipPressed = false;
+            window.addEventListener("keydown", SKIP);
             for (let i = 0; i < split.length; i++) {
+              if (skipPressed) {
+                window.removeEventListener("keydown", SKIP);
+                loc.textContent = inself;
+                resolveAll();
+                break;
+              }
               await letter(split[i], Time());
               if (i === split.length - 1) resolveAll(inself);
             }
@@ -591,6 +612,12 @@ class Game {
                   reject(e);
                 }
               });
+            }
+            function SKIP(e) {
+              if (e.key === self.SKIPKEY) {
+                skipPressed = true;
+                event.preventDefault();
+              }
             }
           } catch (error) {
             reject(error);
@@ -641,9 +668,10 @@ class Game {
       };
       window.addEventListener("keydown", (event) => {
         if (speedkey === false && event.key === self.SPEEDKEY) {
-          mult = speedIncr;
+          mult = 1 / speedIncr;
           speedkey = true;
         }
+        if (event.key === self.SKIPKEY) event.preventDefault();
       });
       window.addEventListener("keyup", (event) => {
         if (event.key === self.SPEEDKEY) {
@@ -655,22 +683,30 @@ class Game {
         self.RENDERTO.append(h1);
         const speedh3 = document.createElement("h3");
         self.RENDERTO.append(speedh3);
-        setTimeout(() => {
-          speedh3.textContent = `- Press ${self.SPEEDKEY} to accelerate typing. -`;
-        }, 350);
-        await ">>> Car.TXT >>>".TYPE(h1);
-        await self.WAIT(500);
-        self.RENDERTO.append(h3);
-        h3.textContent = "  Play";
-        await h3.SELECT(selectStep, true, async () => {
-          h1.textContent = "";
-          h3.textContent = "";
-          speedh3.remove();
+        if (!self.ISRESET) {
+          setTimeout(() => {
+            speedh3.textContent = `- Press ${self.SPEEDKEY} to accelerate typing, and ${self.SKIPKEY} to skip. -`;
+          }, 350);
+          await ">>> Car.TXT >>>".TYPE(h1);
+          await self.WAIT(500);
+          self.RENDERTO.append(h3);
+          h3.textContent = "  Play";
+          await h3.SELECT(selectStep, true, async () => {
+            h1.textContent = "";
+            h3.textContent = "";
+            speedh3.remove();
+            await ">>> Select Difficulty >>>".TYPE(h1);
+            await self.WAIT(500);
+            h3.textContent = `- Use ${self.SCROLLKEYS[0]} and ${self.SCROLLKEYS[1]} to scroll. Press Enter to select. -`;
+            await self.WAIT(500);
+          });
+        } else {
           await ">>> Select Difficulty >>>".TYPE(h1);
           await self.WAIT(500);
           h3.textContent = `- Use ${self.SCROLLKEYS[0]} and ${self.SCROLLKEYS[1]} to scroll. Press Enter to select. -`;
           await self.WAIT(500);
-        });
+          self.ISRESET = false;
+        }
         const boxWidth =
           [...self.USERTMPLS].sort((a, b) => b[0].length - a[0].length)?.[0][0]
             .length + 4;
@@ -914,7 +950,7 @@ class Game {
         self.ROAD.SHIFT(self.MOVESPEED);
         if (self.KEYS.has(self.KEYCONTROLS[0])) self.USER.y--;
         if (self.KEYS.has(self.KEYCONTROLS[1])) self.USER.y++;
-        if (self.RENDERQUEUE) await self.RENDER(self, true);
+        if (self.RENDERQUEUE) await self.RENDER(self, true, true);
         self.USER.collide();
         if (tickCounter % Math.round(addOffset / self.RENDERSPEED) === 0)
           self.QUEUE.ADD();
@@ -1014,6 +1050,7 @@ class Game {
           self.USERPROPS = [];
           self.SCORE.LOC.remove();
           window.removeEventListener("keydown", enterRESET);
+          self.ISRESET = true;
           self.SETUP(self);
         }
       }
@@ -1024,7 +1061,7 @@ class Game {
   RANDOM(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
   }
-  RENDER(self, controlUser = false) {
+  RENDER(self, controlUser = false, checkBool) {
     return new Promise((resolve, reject) => {
       try {
         const tempROAD = Array.from({ length: self.ROAD.length }, (_, i) => [
@@ -1047,7 +1084,7 @@ class Game {
           self.USER.y = Math.max(self.BUILDINGS.ARR.length - 1, self.USER.y);
           self.RENDERQUEUE = false;
         }
-        self.QUEUE.RUN(temp);
+        self.QUEUE.RUN(temp, checkBool);
         temp.splice(0, 0, new Array(self.ROAD[0].length).fill("‾"));
         temp.push(new Array(self.ROAD[0].length).fill("‾"));
         self.RENDERTO.innerHTML = temp.DOCPRINT();
@@ -1077,6 +1114,7 @@ const myGame = new Game(
   800,
   "z",
   150,
-  ["ArrowRight", "ArrowLeft"]
+  ["ArrowRight", "ArrowLeft"],
+  "Tab"
 );
 //good speed is 100 or 80
