@@ -104,10 +104,20 @@ class Game {
             indexes.forEach((index) => {
               let LANE = inself
                 .INLANE(index)
-                .filter((e) => !e.USER && (m < 0 ? e.x > U.x : e.x < U.x));
+                .filter(
+                  (e) =>
+                    !e.USER &&
+                    (m < 0
+                      ? e.x > U.x || e.bounds.TR.x > U.x
+                      : e.x < U.x || e.bounds.TR.x < U.x)
+                );
               if (LANE.length > 0) {
                 LANE.PROPSORT("x");
-                LANE = LANE.filter((e) => Math.abs(U.x - e.x) <= range);
+                LANE = LANE.filter((e) => {
+                  Math.abs(U.x - e.x) <= range ||
+                    (e.x < U.x && e.bounds.TR.x > U.x);
+                });
+                console.log(LANE);
                 if (LANE.length > 0) {
                   cars.push(m < 0 ? LANE[0] : LANE.at(-1));
                   number++;
@@ -930,7 +940,8 @@ class Game {
     {
       self.USER = new self.USERCLASS(
         4,
-        self.LANELOOKUP.inLane(1, "middle"),
+        // self.LANELOOKUP.inLane(1, "middle"),
+        0,
         0,
         true
       );
@@ -952,8 +963,19 @@ class Game {
         if (self.KEYS.has(self.KEYCONTROLS[1])) self.USER.y++;
         if (self.RENDERQUEUE) await self.RENDER(self, true, true);
         self.USER.collide();
-        if (tickCounter % Math.round(addOffset / self.RENDERSPEED) === 0)
-          self.QUEUE.ADD();
+        if (tickCounter === 0) {
+          self.QUEUE.ADD(new self.TMPLS.car(self.ROAD[0].length, 0, -2, false));
+          self.QUEUE.ADD(
+            new self.TMPLS.truckDouble(
+              self.ROAD[0].length - self.USER.template[0].length - 2,
+              1,
+              -2,
+              false
+            )
+          );
+        }
+        // if (tickCounter % Math.round(addOffset / self.RENDERSPEED) === 0)
+        //   self.QUEUE.ADD();
         if (tickCounter % Math.round(1000 / self.RENDERSPEED) === 0) {
           if (pointCounter % everyPoint === 0) self.SCORE.time++;
           pointCounter++;
