@@ -800,10 +800,10 @@ class Game {
         selectionMenu.innerHTML = boxArr.DOCPRINT(false);
         boxArrRef["1"] = true;
         let activeI = 1;
+        const confirm = document.createElement("h3");
+        self.RENDERTO.append(confirm);
         const subH3 = document.createElement("h3");
         self.RENDERTO.append(subH3);
-        const undo = document.createElement("h3");
-        self.RENDERTO.append(undo);
         function scrollLevels(e) {
           if (e.key === self.SCROLLKEYS[0]) {
             boxArrRef[`${activeI}`] = false;
@@ -818,7 +818,6 @@ class Game {
           }
         }
         window.addEventListener("keydown", scrollLevels);
-        //make loopable code
         await new Promise(async (resolveSelector, rejectSelector) => {
           try {
             async function CTRLFC(e) {
@@ -829,24 +828,25 @@ class Game {
                 self.LIVES = boxArrRef[`${activeI}Catalogue`].lives;
                 self.LANES = boxArrRef[`${activeI}Catalogue`].lanes;
                 self.SCORE._lives = self.LIVES;
-                await `- Difficulty ${self.LEVEL} selected. -`.TYPE(subH3);
-                await self.WAIT(200);
-                undo.textContent = "  Undo Selection? Press X to cancel";
-                await undo.SELECT(
+                confirm.textContent = "  Confirm Selection? Press X to cancel";
+                await confirm.SELECT(
                   selectStep,
                   true,
+                  async function () {
+                    window.removeEventListener("keydown", scrollLevels);
+                    window.removeEventListener("keydown", CTRLFC);
+                    confirm.textContent =
+                      "  Confirm Selection? Press X to cancel";
+                    await `- Difficulty ${self.LEVEL} selected. -`.TYPE(subH3);
+                    await self.WAIT(200);
+                    resolveSelector();
+                  },
+                  "x",
                   async function () {
                     window.addEventListener("keydown", scrollLevels);
                     window.addEventListener("keydown", CTRLFC);
                     subH3.textContent = "";
-                    undo.textContent = "";
-                  },
-                  "x",
-                  async function () {
-                    window.removeEventListener("keydown", scrollLevels);
-                    window.removeEventListener("keydown", CTRLFC);
-                    undo.textContent = "  Undo Selection? Press X to cancel";
-                    resolveSelector();
+                    confirm.textContent = "";
                   }
                 );
               }
@@ -942,8 +942,7 @@ class Game {
     {
       self.USER = new self.USERCLASS(
         4,
-        // self.LANELOOKUP.inLane(1, "middle"),
-        3,
+        self.LANELOOKUP.inLane(1, "middle"),
         0,
         true
       );
@@ -965,27 +964,8 @@ class Game {
         if (self.KEYS.has(self.KEYCONTROLS[1])) self.USER.y++;
         if (self.RENDERQUEUE) await self.RENDER(self, true, true);
         self.USER.collide();
-        if (tickCounter === 0) {
-          self.QUEUE.ADD(new self.TMPLS.car(self.ROAD[0].length, 3, -2, false));
-          self.QUEUE.ADD(
-            new self.TMPLS.truckDouble(
-              self.ROAD[0].length - self.USER.template[0].length - 2,
-              2,
-              -2,
-              false
-            )
-          );
-          self.QUEUE.ADD(
-            new self.TMPLS.truckDouble(
-              self.ROAD[0].length - self.USER.template[0].length - 2,
-              4,
-              -2,
-              false
-            )
-          );
-        }
-        // if (tickCounter % Math.round(addOffset / self.RENDERSPEED) === 0)
-        //   self.QUEUE.ADD();
+        if (tickCounter % Math.round(addOffset / self.RENDERSPEED) === 0)
+          self.QUEUE.ADD();
         if (tickCounter % Math.round(1000 / self.RENDERSPEED) === 0) {
           if (pointCounter % everyPoint === 0) self.SCORE.time++;
           pointCounter++;
@@ -1049,11 +1029,7 @@ class Game {
         }
       });
       await self.TICK;
-      const endArr = [
-        `Your Score: ${self.SCORE.points}  |  Top Score: ${self.SCORE.max}`.split(
-          ""
-        ),
-      ];
+      const endArr = [`Your Score: ${self.SCORE.points}`.split("")];
       const nextArr = ["Press Enter to continue".split("")];
       const centerY = Math.floor((tempLength - 1) / 2);
       const centerX =
@@ -1140,7 +1116,7 @@ const myGame = new Game(
   80,
   ["ArrowUp", "ArrowDown"],
   -1,
-  30,
+  100, //infinity, the maximum score isn't told to you
   null,
   600,
   800,
