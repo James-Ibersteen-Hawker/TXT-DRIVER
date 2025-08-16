@@ -695,13 +695,16 @@ class Game {
       });
       try {
         self.RENDERTO.append(h1);
-        const speedh3 = document.createElement("h3");
-        self.RENDERTO.append(speedh3);
         if (!self.ISRESET) {
+          const by = document.createElement("h2");
+          const speedh3 = document.createElement("h3");
+          self.RENDERTO.append(by);
+          self.RENDERTO.append(speedh3);
           setTimeout(() => {
             speedh3.textContent = `- Press ${self.SPEEDKEY} to accelerate typing, and ${self.SKIPKEY} to skip -`;
           }, 350);
           await ">>> Car.TXT >>>".TYPE(h1);
+          await "By Remy Serbinenko".TYPE(by);
           await self.WAIT(500);
           self.RENDERTO.append(h3);
           h3.textContent = "  Play";
@@ -709,6 +712,7 @@ class Game {
             h1.textContent = "";
             h3.textContent = "";
             speedh3.remove();
+            by.remove();
             await ">>> Select Difficulty >>>".TYPE(h1);
             await self.WAIT(500);
             h3.textContent = `- Use ${self.SCROLLKEYS[0]} and ${self.SCROLLKEYS[1]} to scroll, and Enter to select -`;

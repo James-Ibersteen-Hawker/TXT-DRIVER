@@ -1,13 +1,11 @@
 "use strict";
 function Width() {
-  const WW = window.innerWidth;
   const x = document.createElement("span");
   x.textContent = "x";
   document.body.append(x);
   const xW = x.offsetWidth;
   x.remove();
-  const gameWidth = Math.floor((WW - 150) / xW);
-  console.log(gameWidth, WW, xW, x);
+  const gameWidth = Math.floor((window.innerWidth - 150) / xW);
   const myGame = new Game(
     null,
     null,
