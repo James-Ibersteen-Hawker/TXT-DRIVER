@@ -16,6 +16,7 @@ class Game {
   TYPETIME;
   SCROLLKEYS;
   SKIPKEY;
+  SPEEDINCR;
   constructor(
     LEVEL,
     LANES,
@@ -33,7 +34,8 @@ class Game {
     SPEEDKEY,
     TYPETIME,
     SCROLLKEYS,
-    SKIPKEY
+    SKIPKEY,
+    SPEEDINCR
   ) {
     const self = this;
     (this.LEVEL = LEVEL),
@@ -127,7 +129,6 @@ class Game {
               }
             });
             if (number === indexes.length || cars.length === indexes.length) {
-              console.log("force kill!", cars);
               const delIndex = self.RANDOM(0, cars.length - 2);
               const carsDead = cars.slice(delIndex, delIndex + 2);
               carsDead.forEach((e) => {
@@ -364,6 +365,7 @@ class Game {
       (this.SPEEDKEY = SPEEDKEY || "z"),
       (this.SCROLLKEYS = SCROLLKEYS),
       (this.SKIPKEY = SKIPKEY),
+      (this.SPEEDINCR = SPEEDINCR),
       (this.SCORE = {
         _time: 0,
         _points: 0,
@@ -579,7 +581,7 @@ class Game {
     return new Promise(async (resolveTOP, rejectTOP) => {
       const time = self.TYPETIME;
       const selectStep = 175;
-      const speedIncr = 5;
+      const speedIncr = self.SPEEDINCR;
       const h1 = document.createElement("h1");
       const h3 = document.createElement("h3");
       const selectionMenu = document.createElement("div");
@@ -697,7 +699,7 @@ class Game {
         self.RENDERTO.append(speedh3);
         if (!self.ISRESET) {
           setTimeout(() => {
-            speedh3.textContent = `- Press ${self.SPEEDKEY} to accelerate typing, and ${self.SKIPKEY} to skip. -`;
+            speedh3.textContent = `- Press ${self.SPEEDKEY} to accelerate typing, and ${self.SKIPKEY} to skip -`;
           }, 350);
           await ">>> Car.TXT >>>".TYPE(h1);
           await self.WAIT(500);
@@ -709,7 +711,7 @@ class Game {
             speedh3.remove();
             await ">>> Select Difficulty >>>".TYPE(h1);
             await self.WAIT(500);
-            h3.textContent = `- Use ${self.SCROLLKEYS[0]} and ${self.SCROLLKEYS[1]} to scroll. Press Enter to select. -`;
+            h3.textContent = `- Use ${self.SCROLLKEYS[0]} and ${self.SCROLLKEYS[1]} to scroll, and Enter to select -`;
             await self.WAIT(500);
           });
         } else {
@@ -828,7 +830,7 @@ class Game {
                 self.LIVES = boxArrRef[`${activeI}Catalogue`].lives;
                 self.LANES = boxArrRef[`${activeI}Catalogue`].lanes;
                 self.SCORE._lives = self.LIVES;
-                confirm.textContent = "  Confirm Selection? Press X to cancel";
+                confirm.textContent = "  Confirm Selection? Press X to cancel.";
                 await confirm.SELECT(
                   selectStep,
                   true,
@@ -836,8 +838,8 @@ class Game {
                     window.removeEventListener("keydown", scrollLevels);
                     window.removeEventListener("keydown", CTRLFC);
                     confirm.textContent =
-                      "  Confirm Selection? Press X to cancel";
-                    await `- Difficulty ${self.LEVEL} selected. -`.TYPE(subH3);
+                      "  Confirm Selection? Press X to cancel.";
+                    await `- Difficulty ${self.LEVEL} selected -`.TYPE(subH3);
                     await self.WAIT(200);
                     resolveSelector();
                   },
@@ -884,7 +886,6 @@ class Game {
     const seg = self.TMPLS.SGMT;
     self.QUEUE.ARR = [];
     self.LANES = Math.max(3, self.LANES);
-    //road
     {
       self.ROAD = new Array(seg.length * self.LANES).fill(null).map(() => {
         const result = new Array(
@@ -924,7 +925,6 @@ class Game {
     self.BUILDINGS.ARR = new Array(8)
       .fill(null)
       .map(() => new Array(self.ROAD[0].length).fill(" "));
-    //lane lookup
     self.LANELOOKUP.sets = new Array(self.LANES)
       .fill(null)
       .map((_, u) =>
@@ -938,7 +938,6 @@ class Game {
           self.LANELOOKUP.sets.find((v) => v.includes(i))
         ),
       }));
-    //user control
     {
       self.USER = new self.USERCLASS(
         4,
@@ -948,7 +947,6 @@ class Game {
       );
       self.QUEUE.ARR.push(self.USER);
     }
-    // tick and game run
     let tickCounter = 0;
     let pointCounter = 0;
     const everyPoint = 1;
@@ -1030,7 +1028,7 @@ class Game {
       });
       await self.TICK;
       const endArr = [`Your Score: ${self.SCORE.points}`.split("")];
-      const nextArr = ["Press Enter to continue".split("")];
+      const nextArr = ["Press Enter for Main Menu".split("")];
       const centerY = Math.floor((tempLength - 1) / 2);
       const centerX =
         Math.floor(self.ROAD[0].length / 2) - Math.floor(endArr[0].length / 2);
@@ -1065,7 +1063,6 @@ class Game {
       window.addEventListener("keydown", enterRESET);
     }, self.GENSPEED);
   }
-  //utilities
   RANDOM(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
   }
@@ -1106,23 +1103,3 @@ class Game {
     return new Promise((resolve) => setTimeout(resolve, t));
   }
 }
-const myGame = new Game(
-  null,
-  null,
-  70,
-  document.querySelector("#game"),
-  80,
-  40,
-  80,
-  ["ArrowUp", "ArrowDown"],
-  -1,
-  100, //infinity, the maximum score isn't told to you
-  null,
-  600,
-  800,
-  "z",
-  150,
-  ["ArrowRight", "ArrowLeft"],
-  "Tab"
-);
-//good speed is 100 or 80

@@ -4,7 +4,7 @@ van&/‾|‾‾‾|―O―――OO%
 truckFlat&_/‾|========―O―OO―――――OO%
 truckSolid&_/‾|‾‾‾‾‾‾‾|―O―OO―――――OO%
 truckDouble&_/‾|‾‾‾‾‾‾‾|‾‾‾‾‾‾‾|―O―OO―――――OOO―――――OO%
-truckHead&_/‾|―O―O0%
+truckHead&_/‾|―O―OO%
 limo&__/‾|‾‾‾‾|‾\__―O――――――――――O―%
 motorcycle& /__ O––/O%
 bus&/‾|‾‾‾‾‾‾|‾\―O――――――――O―%
@@ -13,6 +13,6 @@ lorry&_/‾|‾‾‾|―O―――OO-%
 ulorry&|‾‾‾|#\_-OO―――O―%
 ucar&__/#|#\__―O―――――O―%
 utruck&|‾‾‾‾‾‾‾|#\_OO―――――OO―O―%
-umotorcycle& _#\ 0\--0%
+umotorcycle& _#\ O\--O%
 ~road~
 SGMT&‾‾‾‾‾‾‾‾-   -   ________%
