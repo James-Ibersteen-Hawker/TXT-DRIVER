@@ -862,6 +862,11 @@ class Game {
             rejectSelector(error);
           }
         });
+        const controls = document.createElement("h3");
+        self.RENDERTO.append(controls);
+        await `- Use ${self.KEYCONTROLS[0]} and ${self.KEYCONTROLS[1]} to move up and down -`.TYPE(
+          controls
+        );
         const play = document.createElement("h2");
         self.RENDERTO.append(play);
         play.textContent = "  Play";
