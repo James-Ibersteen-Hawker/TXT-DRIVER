@@ -119,7 +119,7 @@ class Game {
                   LANE = LANE.filter(
                     (e) =>
                       Math.abs(U.x - e.x) <= range ||
-                      (e.x <= U.x && e.bounds.TR.x >= U.x)
+                      (e.TL.x <= U.x && e.bounds.TR.x >= U.x)
                   );
                   if (LANE.length > 0) {
                     cars.push(m < 0 ? LANE[0] : LANE.at(-1));
@@ -1073,29 +1073,28 @@ class Game {
   RENDER(self, controlUser = false, checkBool) {
     return new Promise((resolve, reject) => {
       try {
-        const tempROAD = Array.from({ length: self.ROAD.length }, (_, i) => [
-          ...self.ROAD[i],
-        ]);
+        const r = self.ROAD;
+        const b = self.BUILDINGS.ARR;
+        if (!r || !b) reject();
+        const tempROAD = Array.from({ length: r.length }, (_, i) => [...r[i]]);
         const temp = [
-          ...self.BUILDINGS.ARR.map((e) => [...e]),
+          ...b.map((e) => [...e]),
           ...tempROAD,
-          ...new Array(self.BUILDINGS.ARR.length - 3)
+          ...new Array(b.length - 3)
             .fill(null)
-            .map(() => new Array(self.ROAD[0].length).fill("░")),
+            .map(() => new Array(r[0].length).fill("░")),
         ];
         if (controlUser) {
           self.USER.y = Math.min(
             self.USER.y,
-            self.BUILDINGS.ARR.length +
-              self.ROAD.length -
-              self.USER.template.length
+            b.length + r.length - self.USER.template.length
           );
-          self.USER.y = Math.max(self.BUILDINGS.ARR.length - 1, self.USER.y);
+          self.USER.y = Math.max(b.length - 1, self.USER.y);
           self.RENDERQUEUE = false;
         }
         self.QUEUE.RUN(temp, checkBool);
-        temp.splice(0, 0, new Array(self.ROAD[0].length).fill("‾"));
-        temp.push(new Array(self.ROAD[0].length).fill("‾"));
+        temp.splice(0, 0, new Array(r[0].length).fill("‾"));
+        temp.push(new Array(r[0].length).fill("‾"));
         self.RENDERTO.innerHTML = temp.DOCPRINT();
         resolve();
       } catch (error) {
@@ -1103,7 +1102,7 @@ class Game {
       }
     });
   }
-  WAIT(t) {
+  WAIT(t = 4) {
     return new Promise((resolve) => setTimeout(resolve, t));
   }
 }
