@@ -116,10 +116,11 @@ class Game {
               if (LANE.length > 0) {
                 if (m < 0) {
                   LANE.PROPSORT("x");
+                  console.log(LANE);
                   LANE = LANE.filter(
                     (e) =>
                       Math.abs(U.x - e.x) <= range ||
-                      (e.TL.x <= U.x && e.bounds.TR.x >= U.x)
+                      (e.bounds.TL.x <= U.x && e.bounds.TR.x >= U.x)
                   );
                   if (LANE.length > 0) {
                     cars.push(m < 0 ? LANE[0] : LANE.at(-1));
