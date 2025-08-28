@@ -37,106 +37,115 @@ class Game {
     SKIPKEY,
     SPEEDINCR
   ) {
+    Array.prototype.OVER = function (target, x, y) {
+      if (
+        x < 0 - this[0].length ||
+        y < 0 - this.length ||
+        y > target.length ||
+        x > target[0].length
+      )
+        return false;
+      this.forEach((e, inY) => {
+        e.forEach((a, inX) => {
+          if (target[y + inY]?.[x + inX]) target[y + inY][x + inX] = a;
+        });
+      });
+      return true;
+    };
+    Array.prototype.DIV = function (num) {
+      const dist = Math.ceil(this.length / num);
+      return new Array(num)
+        .fill(null)
+        .map((_, b) =>
+          new Array(dist).fill(null).map((_, i) => this[b * dist + i])
+        );
+    };
+    Array.prototype.PROPSORT = function (prop) {
+      this.sort((a, b) => a[prop] - b[prop]);
+    };
+    Array.prototype.DOCPRINT = function (border = true) {
+      return this.map((e, i, a) =>
+        i !== a.length - 1 && border === true
+          ? `|${e.join("")}|`
+          : ` ${e.join("")} `
+      ).join("<br>");
+    };
+    Number.prototype.sign = function () {
+      return Math.sign(this);
+    };
     const self = this;
     (this.LEVEL = LEVEL),
-      (this.LANES = LANES),
-      (this.MOVESPEED = MOVESPEED),
-      (this.GAMEWIDTH = GAMEWIDTH),
+      (this.LANES = Math.max(1, LANES)),
+      (this.MOVESPEED = -Math.abs(MOVESPEED)),
+      (this.GAMEWIDTH = Math.max(1, GAMEWIDTH)),
       (this.RENDERTO = RENDERTO),
       (this.QUEUE = {
         ARR: [],
         RUN(loc, checkBool) {
           this.ARR.PROPSORT("z");
-          const newQueue = [];
-          this.ARR.forEach((e) => {
-            if (e.RENDER(loc)) newQueue.push(e);
-          });
-          this.ARR = newQueue;
+          this.ARR = this.ARR.filter((e) => e.RENDER(loc));
           this.ARR.forEach((e) => {
             if (e !== self.USER) e.MOVE();
           });
           this.CHECKLOCK(self.USER.y, checkBool);
         },
         ADD(b = false) {
-          if (!b) {
-            const r = self.ROAD;
-            const m = self.MOVESPEED;
-            const vArr = Object.entries(self.TMPLS).filter(
-              ([k, _]) => k !== "SGMT" && k[0] !== "u"
-            );
-            const selected =
-              self.TMPLS[vArr[self.RANDOM(0, vArr.length - 1)][0]];
-            let x = r[0].length - 1;
-            let y = self.RANDOM(-1, r.length - 1);
-            y = Math.max(
-              -1,
-              Math.min(y, r.length - new selected().template.length)
-            );
-            const speed = m + self.RANDOM(0, 3 * m.sign()) + m.sign();
-            const sameLane = this.INLANE(y + self.BUILDINGS.ARR.length);
-            if (sameLane.length > 0) {
-              sameLane.PROPSORT("x");
-              x =
-                sameLane.at(-1).x +
-                sameLane.at(-1).template[0].length +
-                self.USER.template.length +
-                self.USER.template[0].length;
-              x = Math.max(x, r[0].length - 1);
-            }
-            this.ARR.push(new selected(x, y, speed, false));
-          } else this.ARR.push(b);
+          const { ROAD: r, MOVESPEED: m, TMPLS, RANDOM: RAND, USER: U } = self;
+          if (b) return this.ARR.push(b);
+          const vArr = Object.entries(TMPLS).filter(
+            ([k, _]) => k !== "SGMT" && k[0] !== "u"
+          );
+          const selected = TMPLS[vArr[RAND(0, vArr.length - 1)][0]];
+          let x = r[0].length - 1;
+          let y = RAND(-1, r.length - 1);
+          y = Math.max(
+            -1,
+            Math.min(y, r.length - new selected().template.length)
+          );
+          const speed = m + RAND(0, 3 * m.sign()) + m.sign();
+          const sL = this.INLANE(y + self.BUILDINGS.ARR.length);
+          if (sL.length > 0) {
+            sL.PROPSORT("x");
+            x =
+              sL.at(-1).x +
+              sL.at(-1).template[0].length +
+              U.template.length +
+              U.template[0].length;
+            x = Math.max(x, r[0].length - 1);
+          }
+          this.ARR.push(new selected(x, y, speed, false));
         },
         INLANE(y) {
           return this.ARR.filter((e) => e.y === y);
         },
         CHECKLOCK(y, bool = true) {
-          if (bool) {
-            const inself = this;
-            const U = self.USER;
-            const indexes = [y - 1, y, y + 1];
-            const cars = [];
-            let number = 0;
-            const range = U.template[0].length * 2.3;
-            const m = self.MOVESPEED;
-            if (
-              y === self.BUILDINGS.ARR.length ||
-              y === self.BUILDINGS.ARR.length + self.ROAD.length - 2
-            )
-              number++;
-            indexes.forEach((index) => {
-              let LANE = inself
-                .INLANE(index)
-                .filter(
-                  (e) =>
-                    !e.USER &&
-                    (m < 0
-                      ? e.x <= U.x || e.bounds.TR.x >= U.bounds.TR.x
-                      : e.x >= U.x || e.bounds.TL.x <= U.bounds.TL.x)
-                );
-              if (LANE.length > 0) {
-                if (m < 0) {
-                  LANE.PROPSORT("x");
-                  console.log(LANE);
-                  LANE = LANE.filter(
-                    (e) =>
-                      Math.abs(U.x - e.x) <= range ||
-                      (e.bounds.TL.x <= U.x && e.bounds.TR.x >= U.x)
-                  );
-                  if (LANE.length > 0) {
-                    cars.push(m < 0 ? LANE[0] : LANE.at(-1));
-                    number++;
-                  }
-                }
-              }
-            });
-            if (number === indexes.length || cars.length === indexes.length) {
-              const delIndex = self.RANDOM(0, cars.length - 2);
-              const carsDead = cars.slice(delIndex, delIndex + 2);
-              carsDead.forEach((e) => {
-                const index = inself.ARR.indexOf(e);
-                inself.ARR.splice(index, 1);
-              });
-            }
+          if (!bool) return;
+          const { USER: U, BUILDINGS: BD } = self;
+          const indexes = [y - 1, y, y + 1];
+          const cars = [];
+          const range = U.template[0].length * 2.3;
+          let count = 0;
+          if (y === BD.ARR.length || y === BD.ARR.length + self.ROAD.length - 2)
+            count++;
+          indexes.forEach((index) => {
+            let LANE = this.INLANE(index).filter(
+              (e) => (!e.USER && e.x <= U.x) || e.bounds.TR.x >= U.bounds.TR.x
+            );
+            if (LANE.length <= 0) return;
+            LANE.PROPSORT("x");
+            LANE = LANE.filter(
+              (e) =>
+                Math.abs(U.x - e.x) <= range ||
+                (e.bounds.TL.x <= U.x && e.bounds.TR.x >= U.x)
+            );
+            if (LANE.length <= 0) return;
+            cars.push(LANE[0]);
+            count++;
+          });
+          if (count === indexes.length || cars.length === indexes.length) {
+            const delIndex = self.RANDOM(0, cars.length - 2);
+            const carsDead = cars.slice(delIndex, delIndex + 2);
+            carsDead.forEach((e) => this.ARR.splice(this.ARR.indexOf(e), 1));
           }
         },
       }),
@@ -160,18 +169,14 @@ class Game {
         SETUP(inself, reset = false) {
           inself.z = inself._y;
           if (!reset) inself.y += self.BUILDINGS.ARR.length;
-          inself.bounds.TL = { x: inself.x, y: inself.y };
-          inself.bounds.TR = {
-            x: inself.x + inself.template[0].length,
-            y: inself.y,
-          };
-          inself.bounds.BL = {
-            x: inself.x,
-            y: inself.y + inself.template.length,
-          };
-          inself.bounds.BR = {
-            x: inself.x + inself.template[0].length,
-            y: inself.y + inself.template.length,
+          const { x, y, template: t } = inself;
+          const w = t[0].length,
+            h = t.length;
+          inself.bounds = {
+            TR: { x: x + w, y: y },
+            TL: { x: x, y: y },
+            BR: { x: x + w, y: y + h },
+            BL: { x: x, y: y + h },
           };
         }
         RENDER(loc) {
@@ -203,32 +208,22 @@ class Game {
             this.MAKE();
           }
           MAKE() {
-            const build = new Array(this.height)
-              .fill(null)
-              .map(() => new Array(this.width + 2).fill(" "));
+            const windows = new Set();
+            const RAND = self.RANDOM;
+            const build = Array.from({ length: this.height }, () =>
+              new Array(this.width + 2).fill(" ")
+            );
             build[0].fill("‾");
             build.forEach((e) => (e[0] = e[e.length - 1] = "|"));
-            const windows = [];
-            for (let i = 0; i < this.windowCount; i++) {
-              let [x, y] = [
-                self.RANDOM(1, build[0].length - 2),
-                self.RANDOM(1, build.length - 2),
-              ];
-              let count = 0;
-              while (
-                windows.some((e) => e[0] === x && e[1] === y) &&
-                count < 5
-              ) {
-                [x, y] = [
-                  self.RANDOM(1, build[0].length - 2),
-                  self.RANDOM(1, build.length - 2),
-                ];
-                count++;
-              }
-              if (!windows.some((e) => e[0] === x && e[1] === y)) {
-                windows.push([x, y]);
-                build[y][x] = "█";
-              }
+            let count = 0;
+            while (windows.size < this.windowCount && count < 10) {
+              const X = RAND(1, build[0].length - 2);
+              const Y = RAND(1, build.length - 2);
+              const key = `${X} ${Y}`;
+              if (!windows.has(key)) {
+                windows.add(key);
+                build[Y][X] = "█";
+              } else count++;
             }
             this.arr = build;
           }
@@ -236,12 +231,10 @@ class Game {
         async RENDER() {
           return new Promise((resolve, reject) => {
             try {
-              const result = [];
               this.ARR = this.ARR.map((e) => e.map(() => " "));
-              this.QUEUE.forEach((e) => {
-                if (e.arr.OVER(this.ARR, e.x, e.y) === true) result.push(e);
-              });
-              this.QUEUE = result;
+              this.QUEUE = this.QUEUE.filter((e) =>
+                e.arr.OVER(this.ARR, e.x, e.y)
+              );
               self.RENDERQUEUE = true;
               resolve();
             } catch (error) {
@@ -349,14 +342,14 @@ class Game {
           } else return;
         }
       }),
-      (this.KEYCONTROLS = KEYCONTROLS),
+      (this.KEYCONTROLS = KEYCONTROLS || ["ArrowUp", "ArrowDown"]),
       (this.KEYS = new Set()),
-      (this.MINSPEED = MINSPEED),
-      (this.MAXSPEED = MAXSPEED),
-      (this.TYPETIME = TYPETIME),
-      (this.MINRENDERSPEED = MINRENDERSPEED),
-      (this.MAXRENDERSPEED = MAXRENDERSPEED),
-      (this.GENSPEED = GENSPEED),
+      (this.MINSPEED = Math.max(1, MINSPEED)),
+      (this.MAXSPEED = Math.max(1, MAXSPEED)),
+      (this.TYPETIME = Math.max(1, TYPETIME)),
+      (this.MINRENDERSPEED = Math.max(1, MINRENDERSPEED)),
+      (this.MAXRENDERSPEED = Math.max(1, MAXRENDERSPEED)),
+      (this.GENSPEED = Math.max(1, GENSPEED)),
       (this.MAXLEVEL = null),
       (this.RENDERSPEED = 0),
       (this.USERPROPS = []),
@@ -364,9 +357,9 @@ class Game {
       (this.incr = null),
       (this.USERTMPLS = []),
       (this.SPEEDKEY = SPEEDKEY || "z"),
-      (this.SCROLLKEYS = SCROLLKEYS),
-      (this.SKIPKEY = SKIPKEY),
-      (this.SPEEDINCR = SPEEDINCR),
+      (this.SCROLLKEYS = SCROLLKEYS || ["ArrowLeft", "ArrowRight"]),
+      (this.SKIPKEY = SKIPKEY || "Tab"),
+      (this.SPEEDINCR = Math.max(1, SPEEDINCR)),
       (this.SCORE = {
         _time: 0,
         _points: 0,
@@ -400,10 +393,8 @@ class Game {
               let truckOverUSER = 0;
               await self.RENDER(self, false, false);
               self.QUEUE.ARR.forEach((e) => {
-                if (self.MOVESPEED < 0) {
-                  if (e.bounds.TR.x < 0) truckCount++;
-                  if (e.x === self.USER.x && e !== self.USER) truckOverUSER++;
-                }
+                if (e.bounds.TR.x < 0) truckCount++;
+                if (e.x === self.USER.x && e !== self.USER) truckOverUSER++;
               });
               if (truckOverUSER === self.QUEUE.ARR.length - 1) {
                 const index = self.QUEUE.ARR.indexOf(self.USER);
@@ -442,42 +433,6 @@ class Game {
   }
   async SETUP(self) {
     self.RENDERTO.innerHTML = "";
-    Array.prototype.OVER = function (target, x, y) {
-      if (
-        x < 0 - this[0].length ||
-        y < 0 - this.length ||
-        y > target.length ||
-        x > target[0].length
-      )
-        return false;
-      this.forEach((e, inY) => {
-        e.forEach((a, inX) => {
-          if (target[y + inY]?.[x + inX]) target[y + inY][x + inX] = a;
-        });
-      });
-      return true;
-    };
-    Array.prototype.DIV = function (num) {
-      const dist = Math.ceil(this.length / num);
-      return new Array(num)
-        .fill(null)
-        .map((_, b) =>
-          new Array(dist).fill(null).map((_, i) => this[b * dist + i])
-        );
-    };
-    Array.prototype.PROPSORT = function (prop) {
-      this.sort((a, b) => a[prop] - b[prop]);
-    };
-    Array.prototype.DOCPRINT = function (border = true) {
-      return this.map((e, i, a) =>
-        i !== a.length - 1 && border === true
-          ? `|${e.join("")}|`
-          : ` ${e.join("")} `
-      ).join("<br>");
-    };
-    Number.prototype.sign = function () {
-      return Math.sign(this);
-    };
     const templates = (await (await fetch("templates.txt")).text())
       .replace(/\r?\n/g, "")
       .split(/~[^~]+~/)
@@ -500,9 +455,7 @@ class Game {
               let sameLane = self.QUEUE.INLANE(this.y).filter((e) => !e.USER);
               if (sameLane.length > 0) {
                 const m = self.MOVESPEED;
-                sameLane = sameLane.filter((e) =>
-                  m < 0 ? e.x <= this.x : e.x >= this.x
-                );
+                sameLane = sameLane.filter((e) => e.x <= this.x);
                 if (sameLane.length > 0) {
                   sameLane.PROPSORT("x");
                   const last = sameLane.at(-1);
@@ -513,8 +466,7 @@ class Game {
                     const vDiff = tM - lM;
                     if (vDiff % 1 !== 0)
                       throw new Error(`${vDiff} !== integer`);
-                    const fakeX =
-                      m < 0 ? this.x : this.x + this.template[0].length;
+                    const fakeX = this.x;
                     const dist = Math.abs(last.x - fakeX);
                     const dT = Math.abs(Math.ceil((dist / vDiff) * (2 / 3)));
                     const step = Math.ceil(Math.abs(vDiff / dT));
@@ -921,8 +873,7 @@ class Game {
         this.forEach((e, i, a) => {
           const segment = Math.floor(i / seg.length) * seg.length;
           let offset;
-          if (dir < 0) offset = e.offset + dir;
-          else if (dir > 0) offset = e.offset - (seg[0].length - dir);
+          offset = e.offset + dir;
           offset = offset % seg[0].length;
           e.offset = offset;
           while (offset < e.length) {
