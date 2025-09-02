@@ -82,8 +82,9 @@ class Game {
       (this.QUEUE = {
         ARR: [],
         RUN(loc, checkBool) {
-          this.ARR.PROPSORT("z");
           this.ARR = this.ARR.filter((e) => e.RENDER(loc));
+          if (!this.ARR.includes(self.USER)) this.ARR.push(self.USER);
+          this.ARR.PROPSORT("z");
           this.ARR.forEach((e) => {
             if (e !== self.USER) e.MOVE();
           });
@@ -437,32 +438,26 @@ class Game {
               this.x += this.MOVESPEED;
             }
             DODGE() {
-              let sameLane = self.QUEUE.INLANE(this.y).filter((e) => !e.USER);
-              if (sameLane.length > 0) {
-                const m = self.MOVESPEED;
-                sameLane = sameLane.filter((e) => e.x <= this.x);
-                if (sameLane.length > 0) {
-                  sameLane.PROPSORT("x");
-                  const last = sameLane.at(-1);
-                  const lB = last.bounds;
-                  let tM = this.MOVESPEED;
-                  const lM = last.MOVESPEED;
-                  if (Math.abs(lM) < Math.abs(tM)) {
-                    const vDiff = tM - lM;
-                    if (vDiff % 1 !== 0)
-                      throw new Error(`${vDiff} !== integer`);
-                    const fakeX = this.x;
-                    const dist = Math.abs(last.x - fakeX);
-                    const dT = Math.abs(Math.ceil((dist / vDiff) * (2 / 3)));
-                    const step = Math.ceil(Math.abs(vDiff / dT));
-                    const xs = new Array(lB.TR.x - lB.TL.x + 1)
-                      .fill(null)
-                      .map((_, i) => lB.TR.x + i);
-                    if (xs.includes(this.x + m.sign()) && tM !== lM) tM = lM;
-                    if (isFinite(step)) tM -= step * tM.sign();
-                  }
-                }
-              }
+              let sameLane = self.QUEUE.INLANE(this.y).filter(
+                (e) => !e.USER && e != this
+              );
+              if (sameLane.length === 0) return;
+              sameLane = sameLane.filter((e) => e.x <= this.x);
+              if (sameLane.length === 0) return;
+              sameLane = sameLane.filter((e) => e.MOVESPEED > this.MOVESPEED);
+              if (sameLane.length === 0) return;
+              sameLane.PROPSORT("x");
+              const LAST = sameLane.at(-1);
+              if (!LAST || !this.bounds.TL) return;
+              const [EX, TX] = [LAST.bounds.TR.x, this.bounds.TL.x];
+              const [EMV, TMV] = [LAST.MOVESPEED, this.MOVESPEED];
+              const DX = Math.abs(TX - EX);
+              const DV = Math.abs(EMV - TMV);
+              const T = Math.floor(DX / DV);
+              const STEP = Math.ceil(DV / T);
+              if (EX === TX || EX === TX - 1) this.MOVESPEED = EMV;
+              if (isFinite(+STEP))
+                this.MOVESPEED -= STEP * this.MOVESPEED.sign();
             }
             set x(v) {
               this._x = v;
@@ -789,6 +784,7 @@ class Game {
     });
   }
   async PLAY(self) {
+    if (self.SCORE.lives <= 0) return;
     await new Promise(async (resolve, reject) => {
       try {
         for (let i = 3; i > 0; i--) {
